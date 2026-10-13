@@ -2,7 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
-import '../../theme.dart';
+import '../../../theme.dart';
 import '../home/partner_home_screen.dart';
 import '../onboarding/screens/work_location_screen.dart';
 import '../onboarding/screens/application_submitted_screen.dart';
