@@ -1,4 +1,3 @@
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -51,14 +50,34 @@ class _PersonalDetailsScreenState
           .collection('walkers')
           .doc(uid);
 
-      // Keep existing location, zone and admin approval data.
-      await walkerRef.set({
+      // Check whether the Walker document already exists.
+      final walkerSnapshot = await walkerRef.get();
+
+      final Map<String, dynamic> data = {
         'userId': uid,
-        'walkerId': uid,
         'fullName': _nameController.text.trim(),
         'phone': phone,
         'updatedAt': FieldValue.serverTimestamp(),
-      }, SetOptions(merge: true));
+      };
+
+      if (!walkerSnapshot.exists) {
+        // Required fields for creating a new Walker document.
+        // A Walker cannot approve or activate their own account.
+        data.addAll({
+          'status': 'under_review',
+          'isActive': false,
+          'isApproved': false,
+          'verificationStatus': 'pending',
+        });
+      }
+
+      // Merge preserves existing location, travel mode, KYC
+      // and other onboarding information.
+      // Never write walkerId from the client.
+      await walkerRef.set(
+        data,
+        SetOptions(merge: true),
+      );
 
       if (!mounted) return;
 
@@ -71,21 +90,29 @@ class _PersonalDetailsScreenState
     } on FirebaseException catch (e) {
       if (!mounted) return;
 
+      String message;
+
+      if (e.code == 'permission-denied') {
+        message =
+            'Permission denied. Please check Firestore Rules.';
+      } else if (e.code == 'unavailable') {
+        message =
+            'Network unavailable. Please try again.';
+      } else {
+        message = e.message ?? 'Unable to save details.';
+      }
+
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            e.code == 'permission-denied'
-                ? 'Permission denied. Please check Firestore rules.'
-                : e.message ?? 'Unable to save details.',
-          ),
-        ),
+        SnackBar(content: Text(message)),
       );
-    } catch (_) {
+    } catch (e) {
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Something went wrong. Please try again.'),
+          content: Text(
+            'Something went wrong. Please try again.',
+          ),
         ),
       );
     } finally {
@@ -113,7 +140,12 @@ class _PersonalDetailsScreenState
             child: Form(
               key: _formKey,
               child: ListView(
-                padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
+                padding: const EdgeInsets.fromLTRB(
+                  24,
+                  24,
+                  24,
+                  32,
+                ),
                 children: [
                   Center(
                     child: Container(
@@ -131,7 +163,9 @@ class _PersonalDetailsScreenState
                       ),
                     ),
                   ),
+
                   const SizedBox(height: 24),
+
                   const Text(
                     'Tell us about yourself',
                     textAlign: TextAlign.center,
@@ -141,7 +175,9 @@ class _PersonalDetailsScreenState
                       color: DojoPartnerTheme.textPrimary,
                     ),
                   ),
+
                   const SizedBox(height: 10),
+
                   const Text(
                     'Add your basic details to continue your DOJO Partner application.',
                     textAlign: TextAlign.center,
@@ -151,7 +187,9 @@ class _PersonalDetailsScreenState
                       color: DojoPartnerTheme.textSecondary,
                     ),
                   ),
+
                   const SizedBox(height: 32),
+
                   TextFormField(
                     controller: _nameController,
                     enabled: !_isSaving,
@@ -160,7 +198,9 @@ class _PersonalDetailsScreenState
                     decoration: const InputDecoration(
                       labelText: 'Full Name',
                       hintText: 'Enter your full name',
-                      prefixIcon: Icon(Icons.person_outline),
+                      prefixIcon: Icon(
+                        Icons.person_outline,
+                      ),
                     ),
                     validator: (value) {
                       final name = value?.trim() ?? '';
@@ -176,13 +216,17 @@ class _PersonalDetailsScreenState
                       return null;
                     },
                   ),
+
                   const SizedBox(height: 20),
+
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
                       color: Colors.grey.shade50,
                       borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: Colors.grey.shade200),
+                      border: Border.all(
+                        color: Colors.grey.shade200,
+                      ),
                     ),
                     child: Row(
                       children: [
@@ -190,31 +234,39 @@ class _PersonalDetailsScreenState
                           Icons.verified_user_outlined,
                           color: DojoPartnerTheme.primaryOrange,
                         ),
+
                         const SizedBox(width: 12),
+
                         Expanded(
                           child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                            crossAxisAlignment:
+                                CrossAxisAlignment.start,
                             children: [
                               const Text(
                                 'Verified Mobile Number',
                                 style: TextStyle(
                                   fontSize: 13,
                                   fontWeight: FontWeight.w600,
-                                  color: DojoPartnerTheme.textSecondary,
+                                  color: DojoPartnerTheme
+                                      .textSecondary,
                                 ),
                               ),
+
                               const SizedBox(height: 5),
+
                               Text(
                                 phone,
                                 style: const TextStyle(
                                   fontSize: 15,
                                   fontWeight: FontWeight.w700,
-                                  color: DojoPartnerTheme.textPrimary,
+                                  color: DojoPartnerTheme
+                                      .textPrimary,
                                 ),
                               ),
                             ],
                           ),
                         ),
+
                         const Icon(
                           Icons.check_circle,
                           color: Colors.green,
@@ -222,7 +274,9 @@ class _PersonalDetailsScreenState
                       ],
                     ),
                   ),
+
                   const SizedBox(height: 28),
+
                   Row(
                     children: [
                       Container(
@@ -241,7 +295,9 @@ class _PersonalDetailsScreenState
                           ),
                         ),
                       ),
+
                       const SizedBox(width: 10),
+
                       const Expanded(
                         child: Text(
                           'Personal Details',
@@ -251,6 +307,7 @@ class _PersonalDetailsScreenState
                           ),
                         ),
                       ),
+
                       const Text(
                         'Next: Selfie',
                         style: TextStyle(
@@ -260,7 +317,9 @@ class _PersonalDetailsScreenState
                       ),
                     ],
                   ),
+
                   const SizedBox(height: 20),
+
                   SizedBox(
                     height: 54,
                     child: ElevatedButton(
@@ -269,17 +328,21 @@ class _PersonalDetailsScreenState
                           ? const SizedBox(
                               width: 22,
                               height: 22,
-                              child: CircularProgressIndicator(
+                              child:
+                                  CircularProgressIndicator(
                                 strokeWidth: 2.5,
                                 color: Colors.white,
                               ),
                             )
                           : const Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
+                              mainAxisAlignment:
+                                  MainAxisAlignment.center,
                               children: [
                                 Text('Save & Continue'),
                                 SizedBox(width: 8),
-                                Icon(Icons.arrow_forward_rounded),
+                                Icon(
+                                  Icons.arrow_forward_rounded,
+                                ),
                               ],
                             ),
                     ),
