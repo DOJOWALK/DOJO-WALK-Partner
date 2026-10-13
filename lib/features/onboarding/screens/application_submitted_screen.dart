@@ -109,7 +109,7 @@ class _ApplicationSubmittedScreenState
                     valueListenable: categoryController,
                     builder: (context, category, _) {
                       return DropdownButtonFormField<String>(
-                        value: category,
+                        initialValue: category,
                         isExpanded: true,
                         decoration: InputDecoration(
                           border: OutlineInputBorder(
