@@ -8,6 +8,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart' as maps;
 
 import '../../theme.dart';
+import '../services/location_permission_service.dart';
 import 'customer_otp_sheet.dart';
 import 'walk_summary_screen.dart';
 
@@ -35,7 +36,6 @@ class _LiveWalkScreenState extends State<LiveWalkScreen> {
   Timer? _timer;
   StreamSubscription<Position>? _positionSubscription;
 
-  // One stable document ID prevents duplicate walk documents on retry.
   late final String _walkDocumentId =
       FirebaseFirestore.instance.collection('walks').doc().id;
 
@@ -59,6 +59,7 @@ class _LiveWalkScreenState extends State<LiveWalkScreen> {
   bool _returnLocationChecked = false;
   bool _sameReturnLocation = false;
   bool _returnLocationFailed = false;
+  bool _isRetryingLocation = false;
 
   double? _customerLatitude;
   double? _customerLongitude;
@@ -79,24 +80,24 @@ class _LiveWalkScreenState extends State<LiveWalkScreen> {
     super.dispose();
   }
 
+  // ------------------------------------------------------------
+  // START WALK
+  // ------------------------------------------------------------
+
   Future<void> _startWalk() async {
     try {
       final permission = await _checkLocationPermission();
 
-      if (!permission) {
-        if (!mounted) return;
+      if (!mounted) return;
 
+      if (!permission) {
         setState(() {
           _isStarting = false;
           _locationTracking = false;
         });
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Location permission is required to start the walk.',
-            ),
-          ),
+        _showMessage(
+          'Location permission is required to start the walk.',
         );
         return;
       }
@@ -109,7 +110,7 @@ class _LiveWalkScreenState extends State<LiveWalkScreen> {
 
       setState(() {
         _isStarting = false;
-        _locationTracking = true;
+        _locationTracking = false;
       });
 
       _startTimer();
@@ -122,15 +123,155 @@ class _LiveWalkScreenState extends State<LiveWalkScreen> {
         _locationTracking = false;
       });
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Could not start location tracking. Please try again.',
-          ),
-        ),
+      _showMessage(
+        'Could not start location tracking. Please try again.',
       );
     }
   }
+
+  // ------------------------------------------------------------
+  // LOCATION PERMISSION
+  // ------------------------------------------------------------
+
+  Future<bool> _checkLocationPermission() async {
+    final serviceEnabled =
+        await LocationPermissionService.isLocationServiceEnabled();
+
+    if (!mounted) return false;
+
+    if (!serviceEnabled) {
+      final openSettings = await showDialog<bool>(
+        context: context,
+        barrierDismissible: false,
+        builder: (dialogContext) {
+          return AlertDialog(
+            title: const Text('Location is off'),
+            content: const Text(
+              'DOJO WALK Partner needs your device location '
+              'to track the walk. Please turn on GPS and try again.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(dialogContext, false);
+                },
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.pop(dialogContext, true);
+                },
+                child: const Text('Open Settings'),
+              ),
+            ],
+          );
+        },
+      );
+
+      if (openSettings == true) {
+        await LocationPermissionService.openLocationSettings();
+      }
+
+      return false;
+    }
+
+    final permission =
+        await LocationPermissionService.requestPermission();
+
+    if (!mounted) return false;
+
+    if (permission == LocationPermission.deniedForever) {
+      final openSettings = await showDialog<bool>(
+        context: context,
+        barrierDismissible: false,
+        builder: (dialogContext) {
+          return AlertDialog(
+            title: const Text('Location Permission Required'),
+            content: const Text(
+              'Location permission has been permanently denied. '
+              'Open app settings and allow location permission '
+              'to start the walk.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(dialogContext, false);
+                },
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.pop(dialogContext, true);
+                },
+                child: const Text('App Settings'),
+              ),
+            ],
+          );
+        },
+      );
+
+      if (openSettings == true) {
+        await LocationPermissionService.openAppSettings();
+      }
+
+      return false;
+    }
+
+    return permission == LocationPermission.whileInUse ||
+        permission == LocationPermission.always;
+  }
+
+  // ------------------------------------------------------------
+  // GPS RETRY
+  // ------------------------------------------------------------
+
+  Future<void> _retryLocationTracking() async {
+    if (_isEnding || _isRetryingLocation || !mounted) return;
+
+    setState(() {
+      _isRetryingLocation = true;
+      _locationTracking = false;
+    });
+
+    try {
+      final permission = await _checkLocationPermission();
+
+      if (!mounted) return;
+
+      if (!permission) {
+        setState(() {
+          _isRetryingLocation = false;
+          _locationTracking = false;
+        });
+        return;
+      }
+
+      await _startLocationStream();
+
+      if (!mounted) return;
+
+      setState(() {
+        _isRetryingLocation = false;
+      });
+
+      _showMessage('GPS tracking restart requested.');
+    } catch (_) {
+      if (!mounted) return;
+
+      setState(() {
+        _isRetryingLocation = false;
+        _locationTracking = false;
+      });
+
+      _showMessage(
+        'GPS could not restart. Check your location settings.',
+      );
+    }
+  }
+
+  // ------------------------------------------------------------
+  // TIMER
+  // ------------------------------------------------------------
 
   void _startTimer() {
     _timer?.cancel();
@@ -147,8 +288,27 @@ class _LiveWalkScreenState extends State<LiveWalkScreen> {
     );
   }
 
+  // ------------------------------------------------------------
+  // LOCATION STREAM
+  // ------------------------------------------------------------
+
   Future<void> _startLocationStream() async {
     await _positionSubscription?.cancel();
+    _positionSubscription = null;
+
+    final permission =
+        await LocationPermissionService.hasLocationPermission();
+
+    if (!permission) {
+      throw Exception('Location permission is not available.');
+    }
+
+    final serviceEnabled =
+        await LocationPermissionService.isLocationServiceEnabled();
+
+    if (!serviceEnabled) {
+      throw Exception('Location services are disabled.');
+    }
 
     _positionSubscription = Geolocator.getPositionStream(
       locationSettings: const LocationSettings(
@@ -164,12 +324,8 @@ class _LiveWalkScreenState extends State<LiveWalkScreen> {
           _locationTracking = false;
         });
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'GPS updates stopped. Check your location settings.',
-            ),
-          ),
+        _showMessage(
+          'GPS updates stopped. Check location settings and retry.',
         );
       },
     );
@@ -178,9 +334,10 @@ class _LiveWalkScreenState extends State<LiveWalkScreen> {
   void _handlePosition(Position position) {
     if (!mounted || _isEnding) return;
 
-    // Ignore unreliable GPS readings.
     if (!position.latitude.isFinite ||
         !position.longitude.isFinite ||
+        !position.accuracy.isFinite ||
+        position.accuracy < 0 ||
         position.accuracy > 35 ||
         position.latitude < -90 ||
         position.latitude > 90 ||
@@ -209,12 +366,10 @@ class _LiveWalkScreenState extends State<LiveWalkScreen> {
       position.longitude,
     );
 
-    // Reject large GPS jumps instead of inflating distance.
     if (!movement.isFinite || movement > 100) {
       return;
     }
 
-    // Keep the route from filling with tiny GPS fluctuations.
     if (movement < 3) {
       setState(() {
         _locationTracking = true;
@@ -231,6 +386,10 @@ class _LiveWalkScreenState extends State<LiveWalkScreen> {
     });
   }
 
+  // ------------------------------------------------------------
+  // CUSTOMER LOCATION
+  // ------------------------------------------------------------
+
   Future<void> _loadCustomerLocation() async {
     final bookingId = widget.bookingId;
 
@@ -243,6 +402,7 @@ class _LiveWalkScreenState extends State<LiveWalkScreen> {
           .get();
 
       final data = snapshot.data();
+
       if (data == null) return;
 
       final latitude = _readDouble(data['latitude']);
@@ -265,7 +425,7 @@ class _LiveWalkScreenState extends State<LiveWalkScreen> {
         _customerLongitude = geoPoint.longitude;
       }
     } catch (_) {
-      // Missing customer coordinates are handled during return verification.
+      // OTP verification is used if location cannot be verified.
     }
   }
 
@@ -285,73 +445,33 @@ class _LiveWalkScreenState extends State<LiveWalkScreen> {
     return double.tryParse(value?.toString() ?? '');
   }
 
-  Future<bool> _checkLocationPermission() async {
-    final serviceEnabled =
-        await Geolocator.isLocationServiceEnabled();
-
-    if (!serviceEnabled) {
-      if (!mounted) return false;
-
-      final openSettings = await showDialog<bool>(
-        context: context,
-        builder: (dialogContext) {
-          return AlertDialog(
-            title: const Text('Location is off'),
-            content: const Text(
-              'Please turn on location services to start the walk.',
-            ),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.pop(dialogContext, false);
-                },
-                child: const Text('Cancel'),
-              ),
-              ElevatedButton(
-                onPressed: () {
-                  Navigator.pop(dialogContext, true);
-                },
-                child: const Text('Open Settings'),
-              ),
-            ],
-          );
-        },
-      );
-
-      if (openSettings == true) {
-        await Geolocator.openLocationSettings();
-      }
-
-      return false;
-    }
-
-    var permission = await Geolocator.checkPermission();
-
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
-    }
-
-    return permission != LocationPermission.denied &&
-        permission != LocationPermission.deniedForever;
-  }
+  // ------------------------------------------------------------
+  // PEE / POOP COUNTERS
+  // ------------------------------------------------------------
 
   void _increasePee() {
+    if (_isEnding) return;
     setState(() => _peeCount++);
   }
 
   void _increasePoop() {
+    if (_isEnding) return;
     setState(() => _poopCount++);
   }
 
   void _decreasePee() {
-    if (_peeCount == 0) return;
+    if (_isEnding || _peeCount == 0) return;
     setState(() => _peeCount--);
   }
 
   void _decreasePoop() {
-    if (_poopCount == 0) return;
+    if (_isEnding || _poopCount == 0) return;
     setState(() => _poopCount--);
   }
+
+  // ------------------------------------------------------------
+  // FORMATTING
+  // ------------------------------------------------------------
 
   String get _formattedTime {
     final hours = _seconds ~/ 3600;
@@ -370,6 +490,10 @@ class _LiveWalkScreenState extends State<LiveWalkScreen> {
 
   String get _formattedDistance =>
       '${(_distanceMeters / 1000).toStringAsFixed(2)} km';
+
+  // ------------------------------------------------------------
+  // RETURN LOCATION VERIFICATION
+  // ------------------------------------------------------------
 
   Future<void> _openReturnPanel() async {
     if (_isEnding) return;
@@ -391,11 +515,18 @@ class _LiveWalkScreenState extends State<LiveWalkScreen> {
       _returnLocationFailed = false;
     });
 
-    Position? currentPosition;
+    Position currentPosition;
 
     try {
+      final permission =
+          await LocationPermissionService.hasLocationPermission();
+
+      if (!permission) {
+        throw Exception('Location permission is unavailable.');
+      }
+
       final serviceEnabled =
-          await Geolocator.isLocationServiceEnabled();
+          await LocationPermissionService.isLocationServiceEnabled();
 
       if (!serviceEnabled) {
         throw Exception('Location services are off.');
@@ -404,13 +535,14 @@ class _LiveWalkScreenState extends State<LiveWalkScreen> {
       currentPosition = await Geolocator.getCurrentPosition(
         locationSettings: const LocationSettings(
           accuracy: LocationAccuracy.high,
+          timeLimit: Duration(seconds: 20),
         ),
       );
 
       if (!mounted) return;
 
-      // Do not trust a poor-accuracy reading for return verification.
-      if (currentPosition.accuracy > 35) {
+      if (!currentPosition.accuracy.isFinite ||
+          currentPosition.accuracy > 35) {
         throw Exception('GPS accuracy is too low.');
       }
 
@@ -468,11 +600,10 @@ class _LiveWalkScreenState extends State<LiveWalkScreen> {
 
     if (!_returnLocationChecked) {
       await _checkReturnLocation();
+
       if (!mounted || !_returnLocationChecked) return;
     }
 
-    // If the GPS fix or customer coordinates are unavailable, do not
-    // pretend the location matches. Require the OTP flow instead.
     if (!_sameReturnLocation) {
       await _showCustomerOtpSheet();
       return;
@@ -481,12 +612,16 @@ class _LiveWalkScreenState extends State<LiveWalkScreen> {
     await _endWalk();
   }
 
+  // ------------------------------------------------------------
+  // CUSTOMER OTP
+  // ------------------------------------------------------------
+
   Future<void> _showCustomerOtpSheet() async {
     final bookingId = widget.bookingId;
 
     if (bookingId == null || bookingId.isEmpty) {
       _showMessage(
-        'Booking information is unavailable. Contact support to complete this walk.',
+        'Booking information is unavailable. Contact support.',
       );
       return;
     }
@@ -519,6 +654,10 @@ class _LiveWalkScreenState extends State<LiveWalkScreen> {
     );
   }
 
+  // ------------------------------------------------------------
+  // ROUTE COMPACTION
+  // ------------------------------------------------------------
+
   List<GeoPoint> _compactRoute() {
     if (_route.isEmpty) return [];
 
@@ -526,7 +665,10 @@ class _LiveWalkScreenState extends State<LiveWalkScreen> {
 
     if (_route.length <= maxPoints) {
       return _route
-          .map((p) => GeoPoint(p.latitude, p.longitude))
+          .map((position) => GeoPoint(
+                position.latitude,
+                position.longitude,
+              ))
           .toList();
     }
 
@@ -546,10 +688,13 @@ class _LiveWalkScreenState extends State<LiveWalkScreen> {
     );
   }
 
+  // ------------------------------------------------------------
+  // END WALK AND SAVE
+  // ------------------------------------------------------------
+
   Future<void> _endWalk() async {
     if (_isEnding) return;
 
-    // Check authentication before stopping the timer and GPS stream.
     final user = FirebaseAuth.instance.currentUser;
 
     if (user == null) {
@@ -609,7 +754,6 @@ class _LiveWalkScreenState extends State<LiveWalkScreen> {
         );
       }
 
-      // Stable ID makes retries update the same walk document.
       await FirebaseFirestore.instance
           .collection('walks')
           .doc(_walkDocumentId)
@@ -651,7 +795,6 @@ class _LiveWalkScreenState extends State<LiveWalkScreen> {
 
       setState(() {
         _isEnding = false;
-        _locationTracking = true;
       });
 
       _startTimer();
@@ -671,6 +814,10 @@ class _LiveWalkScreenState extends State<LiveWalkScreen> {
       );
     }
   }
+
+  // ------------------------------------------------------------
+  // MAIN UI
+  // ------------------------------------------------------------
 
   @override
   Widget build(BuildContext context) {
@@ -718,11 +865,13 @@ class _LiveWalkScreenState extends State<LiveWalkScreen> {
                   duration: widget.duration,
                 ),
                 const SizedBox(height: 12),
+
                 _LiveMap(
                   route: _route,
                   tracking: _locationTracking,
                 ),
                 const SizedBox(height: 12),
+
                 Row(
                   children: [
                     Expanded(
@@ -743,6 +892,7 @@ class _LiveWalkScreenState extends State<LiveWalkScreen> {
                   ],
                 ),
                 const SizedBox(height: 12),
+
                 _WalkNotesCard(
                   peeCount: _peeCount,
                   poopCount: _poopCount,
@@ -752,6 +902,7 @@ class _LiveWalkScreenState extends State<LiveWalkScreen> {
                   onPoopMinus: _decreasePoop,
                 ),
                 const SizedBox(height: 12),
+
                 Row(
                   children: [
                     Icon(
@@ -764,21 +915,52 @@ class _LiveWalkScreenState extends State<LiveWalkScreen> {
                           : Colors.red,
                     ),
                     const SizedBox(width: 8),
-                    Text(
-                      _locationTracking
-                          ? 'GPS ACTIVE'
-                          : 'GPS unavailable',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                        color: _locationTracking
-                            ? Colors.green
-                            : Colors.red,
+                    Expanded(
+                      child: Text(
+                        _locationTracking
+                            ? 'GPS ACTIVE'
+                            : 'GPS unavailable',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: _locationTracking
+                              ? Colors.green
+                              : Colors.red,
+                        ),
                       ),
                     ),
                   ],
                 ),
+
+                if (!_locationTracking) ...[
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed:
+                          _isEnding || _isRetryingLocation
+                              ? null
+                              : _retryLocationTracking,
+                      icon: _isRetryingLocation
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                              ),
+                            )
+                          : const Icon(Icons.gps_fixed),
+                      label: Text(
+                        _isRetryingLocation
+                            ? 'Checking GPS...'
+                            : 'Retry GPS',
+                      ),
+                    ),
+                  ),
+                ],
+
                 const SizedBox(height: 16),
+
                 if (!_showReturnPanel)
                   _ReturnToCustomerButton(
                     enabled: !_isEnding,
@@ -804,6 +986,10 @@ class _LiveWalkScreenState extends State<LiveWalkScreen> {
     );
   }
 }
+
+// ============================================================
+// DOG HEADER
+// ============================================================
 
 class _DogHeader extends StatelessWidget {
   const _DogHeader({
@@ -874,6 +1060,10 @@ class _DogHeader extends StatelessWidget {
   }
 }
 
+// ============================================================
+// LIVE MAP
+// ============================================================
+
 class _LiveMap extends StatefulWidget {
   const _LiveMap({
     required this.route,
@@ -928,7 +1118,7 @@ class _LiveMapState extends State<_LiveMap> {
         maps.CameraUpdate.newLatLng(_latLng(latest)),
       );
     } catch (_) {
-      // Map can still render if camera animation is interrupted.
+      // Camera animation can be interrupted.
     }
   }
 
@@ -1014,7 +1204,7 @@ class _LiveMapState extends State<_LiveMap> {
             },
             mapType: maps.MapType.normal,
             myLocationEnabled: widget.tracking,
-            myLocationButtonEnabled: true,
+            myLocationButtonEnabled: widget.tracking,
             zoomControlsEnabled: true,
             compassEnabled: true,
             mapToolbarEnabled: false,
@@ -1097,6 +1287,10 @@ class _LiveMapState extends State<_LiveMap> {
   }
 }
 
+// ============================================================
+// METRIC CARD
+// ============================================================
+
 class _MetricCard extends StatelessWidget {
   const _MetricCard({
     required this.value,
@@ -1154,6 +1348,10 @@ class _MetricCard extends StatelessWidget {
     );
   }
 }
+
+// ============================================================
+// WALK NOTES
+// ============================================================
 
 class _WalkNotesCard extends StatelessWidget {
   const _WalkNotesCard({
@@ -1308,6 +1506,10 @@ class _NoteControl extends StatelessWidget {
   }
 }
 
+// ============================================================
+// RETURN BUTTON
+// ============================================================
+
 class _ReturnToCustomerButton extends StatelessWidget {
   const _ReturnToCustomerButton({
     required this.enabled,
@@ -1330,6 +1532,10 @@ class _ReturnToCustomerButton extends StatelessWidget {
     );
   }
 }
+
+// ============================================================
+// RETURN CUSTOMER PANEL
+// ============================================================
 
 class _ReturnCustomerPanel extends StatelessWidget {
   const _ReturnCustomerPanel({
@@ -1529,6 +1735,10 @@ class _ReturnCustomerPanel extends StatelessWidget {
     );
   }
 }
+
+// ============================================================
+// SLIDE TO END
+// ============================================================
 
 class _SlideToEnd extends StatefulWidget {
   const _SlideToEnd({
