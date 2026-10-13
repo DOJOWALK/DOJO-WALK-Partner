@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 
 import '../../theme.dart';
 import '../home/partner_home_screen.dart';
-import '../onboarding/work_zone_screen.dart';
+import '../../features/onboarding/screens/work_location_screen.dart';
 
 class AccountCheckScreen extends StatefulWidget {
   const AccountCheckScreen({
