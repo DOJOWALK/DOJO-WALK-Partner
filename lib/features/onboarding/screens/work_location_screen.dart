@@ -3,319 +3,166 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../../theme.dart';
-import 'personal_details_screen.dart';
+import '../home/partner_home_screen.dart';
+import '../onboarding/screens/work_location_screen.dart';
+import '../onboarding/screens/application_submitted_screen.dart';
 
-class WorkLocationScreen extends StatefulWidget {
-  const WorkLocationScreen({super.key});
+class AccountCheckScreen extends StatefulWidget {
+  const AccountCheckScreen({
+    super.key,
+    required this.phoneNumber,
+  });
+
+  final String phoneNumber;
 
   @override
-  State<WorkLocationScreen> createState() => _WorkLocationScreenState();
+  State<AccountCheckScreen> createState() =>
+      _AccountCheckScreenState();
 }
 
-class _WorkLocationScreenState extends State<WorkLocationScreen> {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+class _AccountCheckScreenState extends State<AccountCheckScreen> {
+  bool _isChecking = true;
+  bool _hasError = false;
+  String _message = 'Checking your DOJO Partner account...';
 
-  String? _selectedCity;
-  String? _selectedArea;
-  String? _travelMode;
-
-  bool _isSaving = false;
-
-  CollectionReference<Map<String, dynamic>> get _zones =>
-      _firestore.collection('zones');
-
-  Stream<QuerySnapshot<Map<String, dynamic>>> _locationsStream() {
-    return _zones.where('isActive', isEqualTo: true).snapshots();
+  @override
+  void initState() {
+    super.initState();
+    _checkAccount();
   }
 
-  String _field(
-    QueryDocumentSnapshot<Map<String, dynamic>> doc,
-    String key,
-  ) {
-    return doc.data()[key]?.toString().trim() ?? '';
-  }
+  Future<void> _checkAccount() async {
+    if (!mounted) return;
 
-  List<String> _uniqueValues(
-    List<QueryDocumentSnapshot<Map<String, dynamic>>> docs,
-    String field, {
-    String? city,
-  }) {
-    final values = <String>{};
-
-    for (final doc in docs) {
-      final data = doc.data();
-
-      final value = data[field]?.toString().trim() ?? '';
-
-      if (value.isEmpty) continue;
-
-      if (city != null &&
-          (data['city']?.toString().trim() ?? '') != city) {
-        continue;
-      }
-
-      values.add(value);
-    }
-
-    return values.toList()..sort();
-  }
-
-  Future<void> _continue(
-    List<QueryDocumentSnapshot<Map<String, dynamic>>> docs,
-  ) async {
-    if (_selectedCity == null || _selectedArea == null) {
-      _showMessage('Please select your city and work area.');
-      return;
-    }
-
-    if (_travelMode == null) {
-      _showMessage('Please select how you will travel to bookings.');
-      return;
-    }
-
-    final user = FirebaseAuth.instance.currentUser;
-
-    if (user == null) {
-      _showMessage('Your login session expired. Please log in again.');
-      return;
-    }
-
-    // Confirm the selected city and area are still available.
-    final areaExists = docs.any(
-      (doc) =>
-          _field(doc, 'city') == _selectedCity &&
-          _field(doc, 'area') == _selectedArea,
-    );
-
-    if (!areaExists) {
-      _showMessage('This area is no longer available. Please select again.');
-      return;
-    }
-
-    setState(() => _isSaving = true);
+    setState(() {
+      _isChecking = true;
+      _hasError = false;
+      _message = 'Checking your DOJO Partner account...';
+    });
 
     try {
-      await _firestore.collection('walkers').doc(user.uid).set(
-        {
-          'userId': user.uid,
-          'city': _selectedCity,
-          'area': _selectedArea,
-          'travelMode': _travelMode,
-          'status': 'under_review',
-          'isActive': false,
-          'isApproved': false,
-          'verificationStatus': 'pending',
-          'updatedAt': FieldValue.serverTimestamp(),
-        },
-        SetOptions(merge: true),
-      );
+      final user = FirebaseAuth.instance.currentUser;
+
+      if (user == null) {
+        throw FirebaseAuthException(
+          code: 'not-signed-in',
+          message: 'Your login session has expired. Please log in again.',
+        );
+      }
+
+      final walkerRef = FirebaseFirestore.instance
+          .collection('walkers')
+          .doc(user.uid);
+
+      final walkerDoc = await walkerRef.get();
 
       if (!mounted) return;
 
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (_) => const PersonalDetailsScreen(),
-        ),
-      );
+      // A new Partner has no application document yet.
+      if (!walkerDoc.exists) {
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(
+            builder: (_) => const WorkLocationScreen(),
+          ),
+          (route) => false,
+        );
+        return;
+      }
+
+      final data = walkerDoc.data() ?? {};
+
+      final status = (data['status'] ?? 'pending')
+          .toString()
+          .trim()
+          .toLowerCase();
+
+      final isApproved = data['isApproved'] == true;
+      final isActive = data['isActive'] == true;
+
+      // Only an approved AND active Partner can enter Partner Home.
+      if (isApproved && isActive && status == 'approved') {
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(
+            builder: (_) => const PartnerHomeScreen(),
+          ),
+          (route) => false,
+        );
+        return;
+      }
+
+      // Inactive or suspended accounts must not enter Partner Home.
+      if (status == 'suspended' ||
+          status == 'left' ||
+          status == 'rejected' ||
+          status == 'pending' ||
+          status == 'under_review' ||
+          status == 'correction_required' ||
+          status == 'approved') {
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(
+            builder: (_) => const ApplicationSubmittedScreen(),
+          ),
+          (route) => false,
+        );
+        return;
+      }
+
+      // Unknown states remain blocked from Partner Home.
+      setState(() {
+        _isChecking = false;
+        _hasError = false;
+        _message =
+            'Your account status needs to be checked by DOJO Support.';
+      });
+    } on FirebaseAuthException catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        _isChecking = false;
+        _hasError = true;
+        _message =
+            e.message ?? 'Unable to verify your login session.';
+      });
     } on FirebaseException catch (e) {
       if (!mounted) return;
 
-      _showMessage(
-        e.code == 'permission-denied'
-            ? 'Firebase access denied. Please update Firestore Rules.'
-            : e.message ?? 'Unable to save your work location.',
-      );
+      setState(() {
+        _isChecking = false;
+        _hasError = true;
+        _message = e.code == 'permission-denied'
+            ? 'Access denied. Please check your Firestore security rules.'
+            : 'Unable to connect to DOJO. Please try again.';
+      });
     } catch (_) {
       if (!mounted) return;
 
-      _showMessage('Something went wrong. Please try again.');
-    } finally {
-      if (mounted) {
-        setState(() => _isSaving = false);
-      }
+      setState(() {
+        _isChecking = false;
+        _hasError = true;
+        _message = 'Something went wrong. Please try again.';
+      });
     }
   }
 
-  void _showMessage(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
-  }
+  Future<void> _logout() async {
+    try {
+      await FirebaseAuth.instance.signOut();
 
-  Widget _sectionTitle(String title, String subtitle) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          title,
-          style: const TextStyle(
-            fontSize: 21,
-            fontWeight: FontWeight.w800,
-            color: DojoPartnerTheme.textPrimary,
-          ),
-        ),
-        const SizedBox(height: 6),
-        Text(
-          subtitle,
-          style: const TextStyle(
-            fontSize: 14,
-            height: 1.5,
-            color: DojoPartnerTheme.textSecondary,
-          ),
-        ),
-      ],
-    );
-  }
+      if (!mounted) return;
 
-  Widget _dropdown({
-    required String label,
-    required String hint,
-    required String? value,
-    required List<String> items,
-    required ValueChanged<String?> onChanged,
-    bool enabled = true,
-  }) {
-    final safeValue =
-        value != null && items.contains(value) ? value : null;
+      Navigator.of(context).popUntil((route) => route.isFirst);
+    } catch (_) {
+      if (!mounted) return;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w700,
-            color: DojoPartnerTheme.textPrimary,
-          ),
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Unable to log out. Please try again.'),
         ),
-        const SizedBox(height: 8),
-        DropdownButtonFormField<String>(
-          initialValue: safeValue,
-          isExpanded: true,
-          decoration: InputDecoration(
-            hintText: hint,
-            filled: true,
-            fillColor: const Color(0xFFFAFAFA),
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 15,
-              vertical: 16,
-            ),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(13),
-              borderSide: const BorderSide(
-                color: Color(0xFFE5E5E5),
-              ),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(13),
-              borderSide: const BorderSide(
-                color: Color(0xFFE5E5E5),
-              ),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(13),
-              borderSide: const BorderSide(
-                color: DojoPartnerTheme.primaryOrange,
-                width: 1.5,
-              ),
-            ),
-          ),
-          items: items
-              .map(
-                (item) => DropdownMenuItem<String>(
-                  value: item,
-                  child: Text(
-                    item,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              )
-              .toList(),
-          onChanged: enabled && !_isSaving ? onChanged : null,
-        ),
-      ],
-    );
-  }
-
-  Widget _travelModeCard({
-    required String value,
-    required String title,
-    required String subtitle,
-    required IconData icon,
-  }) {
-    final selected = _travelMode == value;
-
-    return InkWell(
-      borderRadius: BorderRadius.circular(14),
-      onTap: _isSaving
-          ? null
-          : () {
-              setState(() {
-                _travelMode = value;
-              });
-            },
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 10),
-        padding: const EdgeInsets.all(15),
-        decoration: BoxDecoration(
-          color: selected
-              ? const Color(0xFFFFF5EC)
-              : Colors.white,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-            color: selected
-                ? DojoPartnerTheme.primaryOrange
-                : const Color(0xFFE5E5E5),
-            width: selected ? 1.6 : 1,
-          ),
-        ),
-        child: Row(
-          children: [
-            Icon(
-              icon,
-              size: 28,
-              color: selected
-                  ? DojoPartnerTheme.primaryOrange
-                  : DojoPartnerTheme.textSecondary,
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w800,
-                      color: DojoPartnerTheme.textPrimary,
-                    ),
-                  ),
-                  const SizedBox(height: 3),
-                  Text(
-                    subtitle,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: DojoPartnerTheme.textSecondary,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Icon(
-              selected
-                  ? Icons.radio_button_checked
-                  : Icons.radio_button_unchecked,
-              color: selected
-                  ? DojoPartnerTheme.primaryOrange
-                  : const Color(0xFFBDBDBD),
-            ),
-          ],
-        ),
-      ),
-    );
+      );
+    }
   }
 
   @override
@@ -323,259 +170,150 @@ class _WorkLocationScreenState extends State<WorkLocationScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text('Work Location'),
-        centerTitle: true,
         backgroundColor: Colors.white,
-        surfaceTintColor: Colors.transparent,
         elevation: 0,
+        title: const Text(
+          'Account Check',
+          style: TextStyle(
+            color: DojoPartnerTheme.textPrimary,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        actions: [
+          IconButton(
+            tooltip: 'Logout',
+            onPressed: _logout,
+            icon: const Icon(Icons.logout_rounded),
+          ),
+        ],
       ),
       body: SafeArea(
-        child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-          stream: _locationsStream(),
-          builder: (context, snapshot) {
-            if (snapshot.hasError) {
-              return const Center(
-                child: Padding(
-                  padding: EdgeInsets.all(24),
-                  child: Text(
-                    'Unable to load cities and areas. Please check your connection.',
-                    textAlign: TextAlign.center,
-                  ),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            return SingleChildScrollView(
+              padding: const EdgeInsets.all(24),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  minHeight: constraints.maxHeight - 48,
                 ),
-              );
-            }
-
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(
-                child: CircularProgressIndicator(
-                  color: DojoPartnerTheme.primaryOrange,
-                ),
-              );
-            }
-
-            final docs = snapshot.data?.docs ?? [];
-
-            if (docs.isEmpty) {
-              return const Center(
-                child: Padding(
-                  padding: EdgeInsets.all(24),
-                  child: Text(
-                    'No active locations are available yet. Please contact DOJO support.',
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-              );
-            }
-
-            final cities = _uniqueValues(docs, 'city');
-
-            final areas = _uniqueValues(
-              docs,
-              'area',
-              city: _selectedCity,
-            );
-
-            // Reset selections if the active location data changes.
-            if (_selectedCity != null && !cities.contains(_selectedCity)) {
-              _selectedCity = null;
-              _selectedArea = null;
-            } else if (_selectedArea != null &&
-                !areas.contains(_selectedArea)) {
-              _selectedArea = null;
-            }
-
-            return Column(
-              children: [
-                Expanded(
-                  child: Center(
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 480),
-                      child: ListView(
-                        padding: const EdgeInsets.fromLTRB(
-                          24,
-                          18,
-                          24,
-                          24,
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(
+                      maxWidth: 380,
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Container(
+                          width: 76,
+                          height: 76,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: DojoPartnerTheme.primaryOrange,
+                            borderRadius: BorderRadius.circular(22),
+                          ),
+                          child: const Icon(
+                            Icons.pets_rounded,
+                            color: Colors.white,
+                            size: 42,
+                          ),
                         ),
-                        children: [
-                          Center(
-                            child: Container(
-                              width: 58,
-                              height: 58,
-                              decoration: BoxDecoration(
-                                color: DojoPartnerTheme.primaryOrange,
-                                borderRadius: BorderRadius.circular(18),
-                              ),
-                              child: const Icon(
-                                Icons.pets_rounded,
-                                color: Colors.white,
-                                size: 32,
-                              ),
+                        const SizedBox(height: 24),
+                        const Text(
+                          'DOJO PARTNER',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: DojoPartnerTheme.primaryOrange,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 3,
+                          ),
+                        ),
+                        const SizedBox(height: 32),
+                        Container(
+                          padding: const EdgeInsets.all(26),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFAFAFA),
+                            borderRadius: BorderRadius.circular(22),
+                            border: Border.all(
+                              color: const Color(0xFFEEEEEE),
                             ),
                           ),
-                          const SizedBox(height: 16),
-                          const Text(
-                            'DOJO PARTNER',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w900,
-                              letterSpacing: 3,
-                              color: DojoPartnerTheme.primaryOrange,
-                            ),
-                          ),
-                          const SizedBox(height: 24),
-                          _sectionTitle(
-                            'Where would you like to work?',
-                            'Choose one city, one area and your preferred travel mode.',
-                          ),
-                          const SizedBox(height: 24),
-
-                          // CITY DROPDOWN
-                          _dropdown(
-                            label: 'Select City',
-                            hint: 'Choose your city',
-                            value: _selectedCity,
-                            items: cities,
-                            onChanged: (value) {
-                              setState(() {
-                                _selectedCity = value;
-                                _selectedArea = null;
-                              });
-                            },
-                          ),
-
-                          const SizedBox(height: 20),
-
-                          // AREA DROPDOWN
-                          _dropdown(
-                            label: 'Select One Area',
-                            hint: _selectedCity == null
-                                ? 'Select a city first'
-                                : 'Choose your work area',
-                            value: _selectedArea,
-                            items: areas,
-                            enabled: _selectedCity != null,
-                            onChanged: (value) {
-                              setState(() {
-                                _selectedArea = value;
-                              });
-                            },
-                          ),
-
-                          const SizedBox(height: 28),
-
-                          _sectionTitle(
-                            'How will you travel?',
-                            'Choose your main way to reach customer bookings.',
-                          ),
-
-                          const SizedBox(height: 14),
-
-                          _travelModeCard(
-                            value: 'walking',
-                            title: 'Walking',
-                            subtitle: 'I will travel on foot.',
-                            icon: Icons.directions_walk_rounded,
-                          ),
-
-                          _travelModeCard(
-                            value: 'bicycle',
-                            title: 'Bicycle',
-                            subtitle: 'I will travel by bicycle.',
-                            icon: Icons.pedal_bike_rounded,
-                          ),
-
-                          _travelModeCard(
-                            value: 'scooter',
-                            title: 'Scooter',
-                            subtitle: 'I will travel by scooter.',
-                            icon: Icons.two_wheeler_rounded,
-                          ),
-
-                          _travelModeCard(
-                            value: 'motorcycle',
-                            title: 'Motorcycle / Bike',
-                            subtitle: 'I will travel by motorcycle.',
-                            icon: Icons.motorcycle_rounded,
-                          ),
-
-                          const SizedBox(height: 8),
-
-                          Container(
-                            padding: const EdgeInsets.all(14),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFFFF5EC),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: const Text(
-                              'Note: Travel mode describes how you reach the customer. The dog walk itself is conducted on foot.',
-                              style: TextStyle(
-                                fontSize: 12,
-                                height: 1.5,
-                                color: DojoPartnerTheme.textSecondary,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-
-                // BOTTOM BUTTON
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.fromLTRB(24, 14, 24, 20),
-                  decoration: const BoxDecoration(
-                    color: Colors.white,
-                    border: Border(
-                      top: BorderSide(
-                        color: Color(0xFFEEEEEE),
-                      ),
-                    ),
-                  ),
-                  child: Center(
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 480),
-                      child: SizedBox(
-                        width: double.infinity,
-                        height: 54,
-                        child: ElevatedButton(
-                          onPressed: _isSaving
-                              ? null
-                              : () => _continue(docs),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor:
-                                DojoPartnerTheme.primaryOrange,
-                            foregroundColor: Colors.white,
-                            elevation: 0,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14),
-                            ),
-                          ),
-                          child: _isSaving
-                              ? const SizedBox(
-                                  width: 22,
-                                  height: 22,
+                          child: Column(
+                            children: [
+                              if (_isChecking)
+                                const SizedBox(
+                                  width: 44,
+                                  height: 44,
                                   child: CircularProgressIndicator(
-                                    strokeWidth: 2.5,
-                                    color: Colors.white,
+                                    color:
+                                        DojoPartnerTheme.primaryOrange,
+                                    strokeWidth: 3,
                                   ),
                                 )
-                              : const Text(
-                                  'Save Location & Continue',
-                                  style: TextStyle(
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.w800,
+                              else
+                                const Icon(
+                                  Icons.error_outline_rounded,
+                                  color: DojoPartnerTheme.primaryOrange,
+                                  size: 46,
+                                ),
+                              const SizedBox(height: 22),
+                              Text(
+                                _isChecking
+                                    ? 'Verifying your account'
+                                    : _hasError
+                                        ? 'Unable to check account'
+                                        : 'Account status',
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(
+                                  fontSize: 21,
+                                  fontWeight: FontWeight.w800,
+                                  color:
+                                      DojoPartnerTheme.textPrimary,
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              Text(
+                                _message,
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  height: 1.6,
+                                  color:
+                                      DojoPartnerTheme.textSecondary,
+                                ),
+                              ),
+                              if (_hasError) ...[
+                                const SizedBox(height: 24),
+                                SizedBox(
+                                  width: double.infinity,
+                                  height: 50,
+                                  child: ElevatedButton(
+                                    onPressed: _checkAccount,
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor:
+                                          DojoPartnerTheme.primaryOrange,
+                                      foregroundColor: Colors.white,
+                                      elevation: 0,
+                                    ),
+                                    child: const Text(
+                                      'Try Again',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w800,
+                                      ),
+                                    ),
                                   ),
                                 ),
+                              ],
+                            ],
+                          ),
                         ),
-                      ),
+                      ],
                     ),
                   ),
                 ),
-              ],
+              ),
             );
           },
         ),
