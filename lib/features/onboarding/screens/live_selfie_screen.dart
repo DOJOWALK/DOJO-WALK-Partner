@@ -1,12 +1,14 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:math' as math;
+import 'dart:typed_data';
 
 import 'package:camera/camera.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
 import 'package:image/image.dart' as img;
 
@@ -33,12 +35,15 @@ class _LiveSelfieScreenState extends State<LiveSelfieScreen>
   bool _uploading = false;
   bool _cameraReady = false;
   bool _disposed = false;
+  bool _cameraOperationInProgress = false;
 
   String _status = 'Starting camera...';
   String _qualityStatus = 'Waiting for your face';
 
   int _goodFrames = 0;
-  DateTime _lastFrameTime = DateTime.fromMillisecondsSinceEpoch(0);
+
+  DateTime _lastFrameTime =
+      DateTime.fromMillisecondsSinceEpoch(0);
 
   static const int _requiredGoodFrames = 8;
   static const double _minFaceWidthRatio = 0.22;
@@ -47,7 +52,9 @@ class _LiveSelfieScreenState extends State<LiveSelfieScreen>
   @override
   void initState() {
     super.initState();
+
     WidgetsBinding.instance.addObserver(this);
+
     _faceDetector = FaceDetector(
       options: FaceDetectorOptions(
         performanceMode: FaceDetectorMode.accurate,
@@ -56,6 +63,7 @@ class _LiveSelfieScreenState extends State<LiveSelfieScreen>
         minFaceSize: 0.15,
       ),
     );
+
     _initializeCamera();
   }
 
@@ -64,32 +72,49 @@ class _LiveSelfieScreenState extends State<LiveSelfieScreen>
     if (state == AppLifecycleState.inactive ||
         state == AppLifecycleState.paused ||
         state == AppLifecycleState.detached) {
-      _stopCamera();
+      unawaited(_stopCamera());
     } else if (state == AppLifecycleState.resumed &&
         mounted &&
+        !_disposed &&
         _selfieFile == null &&
         !_uploading) {
-      _initializeCamera();
+      unawaited(_initializeCamera());
     }
   }
 
   Future<void> _initializeCamera() async {
-    if (!mounted || _disposed) return;
+    if (!mounted ||
+        _disposed ||
+        _cameraOperationInProgress ||
+        _uploading) {
+      return;
+    }
 
-    setState(() {
-      _initializing = true;
-      _cameraReady = false;
-      _status = 'Starting front camera...';
-      _qualityStatus = 'Waiting for your face';
-    });
+    _cameraOperationInProgress = true;
+
+    if (mounted) {
+      setState(() {
+        _initializing = true;
+        _cameraReady = false;
+        _status = 'Starting front camera...';
+        _qualityStatus = 'Waiting for your face';
+      });
+    }
 
     try {
       final cameras = await availableCameras();
+
+      if (_disposed || !mounted) return;
+
       if (cameras.isEmpty) {
-        throw Exception('No camera is available on this device.');
+        throw CameraException(
+          'no_camera',
+          'No camera is available on this device.',
+        );
       }
 
       CameraDescription selected = cameras.first;
+
       for (final camera in cameras) {
         if (camera.lensDirection == CameraLensDirection.front) {
           selected = camera;
@@ -101,8 +126,18 @@ class _LiveSelfieScreenState extends State<LiveSelfieScreen>
       _camera = null;
 
       if (oldCamera != null) {
-        await oldCamera.dispose();
+        try {
+          if (oldCamera.value.isStreamingImages) {
+            await oldCamera.stopImageStream();
+          }
+        } catch (_) {}
+
+        try {
+          await oldCamera.dispose();
+        } catch (_) {}
       }
+
+      if (_disposed || !mounted) return;
 
       final controller = CameraController(
         selected,
@@ -114,10 +149,14 @@ class _LiveSelfieScreenState extends State<LiveSelfieScreen>
       );
 
       _camera = controller;
+
       await controller.initialize();
 
-      if (!mounted || _disposed) {
+      if (_disposed || !mounted) {
         await controller.dispose();
+        if (identical(_camera, controller)) {
+          _camera = null;
+        }
         return;
       }
 
@@ -125,17 +164,36 @@ class _LiveSelfieScreenState extends State<LiveSelfieScreen>
         _initializing = false;
         _cameraReady = true;
         _status = 'Position your face inside the frame';
+        _qualityStatus = 'Look directly at the camera.';
       });
 
       await controller.startImageStream(_processCameraFrame);
+    } on CameraException catch (e) {
+      debugPrint('Camera error: ${e.code} ${e.description}');
+
+      if (mounted && !_disposed) {
+        setState(() {
+          _initializing = false;
+          _cameraReady = false;
+          _status = 'Camera could not start';
+          _qualityStatus =
+              'Check camera permission, then tap Retry Camera.';
+        });
+      }
     } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _initializing = false;
-        _cameraReady = false;
-        _status = 'Camera could not start';
-        _qualityStatus = 'Check camera permission and try again.';
-      });
+      debugPrint('Camera initialization error: $e');
+
+      if (mounted && !_disposed) {
+        setState(() {
+          _initializing = false;
+          _cameraReady = false;
+          _status = 'Camera could not start';
+          _qualityStatus =
+              'Check camera permission and internet-independent device settings, then retry.';
+        });
+      }
+    } finally {
+      _cameraOperationInProgress = false;
     }
   }
 
@@ -144,6 +202,7 @@ class _LiveSelfieScreenState extends State<LiveSelfieScreen>
         _capturing ||
         _uploading ||
         _selfieFile != null ||
+        _disposed ||
         _faceDetector == null ||
         _camera == null ||
         !_cameraReady) {
@@ -151,40 +210,68 @@ class _LiveSelfieScreenState extends State<LiveSelfieScreen>
     }
 
     final now = DateTime.now();
-    if (now.difference(_lastFrameTime).inMilliseconds < 180) return;
+
+    if (now.difference(_lastFrameTime).inMilliseconds < 180) {
+      return;
+    }
+
     _lastFrameTime = now;
     _processingFrame = true;
 
     try {
-      final camera = _camera!;
+      final camera = _camera;
+
+      if (camera == null || !camera.value.isInitialized) {
+        return;
+      }
+
       final input = _buildInputImage(image, camera);
+
       if (input == null) {
+        _goodFrames = 0;
+
         _updateStatus(
           'Camera format not supported',
-          'Please restart the app and try again.',
+          'Try restarting the camera.',
         );
+
         return;
       }
 
       final faces = await _faceDetector!.processImage(input);
 
-      if (!mounted || _selfieFile != null || _capturing) return;
+      if (!mounted ||
+          _disposed ||
+          _selfieFile != null ||
+          _capturing) {
+        return;
+      }
 
       if (faces.length != 1) {
         _goodFrames = 0;
+
         _updateStatus(
-          faces.isEmpty ? 'Face not detected' : 'Only one face is allowed',
+          faces.isEmpty
+              ? 'Face not detected'
+              : 'Only one face is allowed',
           faces.isEmpty
               ? 'Look directly at the front camera.'
               : 'Make sure only your face is visible.',
         );
+
         return;
       }
 
       final face = faces.first;
       final box = face.boundingBox;
+
       final imageWidth = image.width.toDouble();
       final imageHeight = image.height.toDouble();
+
+      if (imageWidth <= 0 || imageHeight <= 0) {
+        _goodFrames = 0;
+        return;
+      }
 
       final faceWidthRatio = box.width / imageWidth;
       final centerX = box.center.dx / imageWidth;
@@ -198,53 +285,65 @@ class _LiveSelfieScreenState extends State<LiveSelfieScreen>
       final correctSize = faceWidthRatio >= _minFaceWidthRatio &&
           faceWidthRatio <= _maxFaceWidthRatio;
 
-      final eyesVisible = face.leftEyeOpenProbability == null ||
-          face.rightEyeOpenProbability == null ||
-          (face.leftEyeOpenProbability! > 0.15 &&
-              face.rightEyeOpenProbability! > 0.15);
+      final leftEye = face.leftEyeOpenProbability;
+      final rightEye = face.rightEyeOpenProbability;
 
-      final headStraight = (face.headEulerAngleY ?? 0).abs() < 18 &&
+      final eyesVisible = leftEye == null ||
+          rightEye == null ||
+          (leftEye > 0.15 && rightEye > 0.15);
+
+      final headStraight =
+          (face.headEulerAngleY ?? 0).abs() < 18 &&
           (face.headEulerAngleZ ?? 0).abs() < 15;
 
       if (!centered) {
         _goodFrames = 0;
+
         _updateStatus(
           'Adjust your face position',
           'Move your face into the centre of the frame.',
         );
+
         return;
       }
 
       if (!correctSize) {
         _goodFrames = 0;
+
         _updateStatus(
           faceWidthRatio < _minFaceWidthRatio
               ? 'Move a little closer'
               : 'Move a little farther away',
           'Keep your full face inside the frame.',
         );
+
         return;
       }
 
       if (!eyesVisible) {
         _goodFrames = 0;
+
         _updateStatus(
           'Eyes not clearly visible',
           'Remove sunglasses or anything covering your eyes.',
         );
+
         return;
       }
 
       if (!headStraight) {
         _goodFrames = 0;
+
         _updateStatus(
           'Face the camera directly',
           'Keep your head straight.',
         );
+
         return;
       }
 
       _goodFrames++;
+
       _updateStatus(
         'Face position looks good',
         'Hold still. Preparing automatic capture...',
@@ -253,8 +352,11 @@ class _LiveSelfieScreenState extends State<LiveSelfieScreen>
       if (_goodFrames >= _requiredGoodFrames) {
         await _captureAutomatically();
       }
-    } catch (_) {
+    } catch (e) {
+      debugPrint('Face detection error: $e');
+
       _goodFrames = 0;
+
       _updateStatus(
         'Checking your face...',
         'Keep your face visible and hold still.',
@@ -268,31 +370,74 @@ class _LiveSelfieScreenState extends State<LiveSelfieScreen>
     CameraImage image,
     CameraController controller,
   ) {
-    final camera = controller.description;
-    final rotation = _rotationForCamera(camera);
-    if (rotation == null) return null;
+    final rotation = _rotationForCamera(controller.description);
 
-    final format = InputImageFormatValue.fromRawValue(image.format.raw);
-    if (format == null) return null;
+    if (rotation == null || image.planes.isEmpty) {
+      return null;
+    }
 
-    final bytes = _convertCameraBytes(image);
-    if (bytes == null) return null;
-
-    final metadata = InputImageMetadata(
-      size: Size(image.width.toDouble(), image.height.toDouble()),
-      rotation: rotation,
-      format: format,
-      bytesPerRow: image.planes.first.bytesPerRow,
+    final format = InputImageFormatValue.fromRawValue(
+      image.format.raw,
     );
 
-    return InputImage.fromBytes(bytes: bytes, metadata: metadata);
+    if (format == null) {
+      return null;
+    }
+
+    // Android NV21: ML Kit accepts the single-plane byte buffer.
+    if (Platform.isAndroid &&
+        format == InputImageFormat.nv21 &&
+        image.planes.length == 1) {
+      final plane = image.planes.first;
+
+      return InputImage.fromBytes(
+        bytes: plane.bytes,
+        metadata: InputImageMetadata(
+          size: Size(
+            image.width.toDouble(),
+            image.height.toDouble(),
+          ),
+          rotation: rotation,
+          format: InputImageFormat.nv21,
+          bytesPerRow: plane.bytesPerRow,
+        ),
+      );
+    }
+
+    // iOS BGRA8888: the camera plugin usually supplies one plane.
+    if (Platform.isIOS &&
+        format == InputImageFormat.bgra8888 &&
+        image.planes.length == 1) {
+      final plane = image.planes.first;
+
+      return InputImage.fromBytes(
+        bytes: plane.bytes,
+        metadata: InputImageMetadata(
+          size: Size(
+            image.width.toDouble(),
+            image.height.toDouble(),
+          ),
+          rotation: rotation,
+          format: InputImageFormat.bgra8888,
+          bytesPerRow: plane.bytesPerRow,
+        ),
+      );
+    }
+
+    // Unsupported plane layouts should not be passed to ML Kit
+    // as if concatenating them created a valid image format.
+    return null;
   }
 
-  InputImageRotation? _rotationForCamera(CameraDescription camera) {
+  InputImageRotation? _rotationForCamera(
+    CameraDescription camera,
+  ) {
     final sensorOrientation = camera.sensorOrientation;
 
     if (Platform.isAndroid) {
-      final deviceOrientation = _camera?.value.deviceOrientation;
+      final deviceOrientation =
+          _camera?.value.deviceOrientation;
+
       final deviceRotation = switch (deviceOrientation) {
         DeviceOrientation.portraitUp => 0,
         DeviceOrientation.landscapeLeft => 90,
@@ -301,38 +446,25 @@ class _LiveSelfieScreenState extends State<LiveSelfieScreen>
         _ => 0,
       };
 
-      final adjusted = camera.lensDirection == CameraLensDirection.front
-          ? (sensorOrientation + deviceRotation) % 360
-          : (sensorOrientation - deviceRotation + 360) % 360;
+      final adjusted =
+          camera.lensDirection == CameraLensDirection.front
+              ? (sensorOrientation + deviceRotation) % 360
+              : (sensorOrientation - deviceRotation + 360) % 360;
 
       return InputImageRotationValue.fromRawValue(adjusted);
     }
 
-    return InputImageRotationValue.fromRawValue(sensorOrientation);
-  }
-
-  Uint8List? _convertCameraBytes(CameraImage image) {
-    if (image.planes.isEmpty) return null;
-
-    if (Platform.isAndroid && image.planes.length == 1) {
-      return image.planes.first.bytes;
-    }
-
-    if (image.planes.length == 1) {
-      return image.planes.first.bytes;
-    }
-
-    // ML Kit expects one byte buffer. Combine planes for supported formats.
-    final builder = BytesBuilder(copy: false);
-    for (final plane in image.planes) {
-      builder.add(plane.bytes);
-    }
-    return builder.takeBytes();
+    return InputImageRotationValue.fromRawValue(
+      sensorOrientation,
+    );
   }
 
   void _updateStatus(String status, String quality) {
-    if (!mounted) return;
-    if (_status == status && _qualityStatus == quality) return;
+    if (!mounted || _disposed) return;
+
+    if (_status == status && _qualityStatus == quality) {
+      return;
+    }
 
     setState(() {
       _status = status;
@@ -342,10 +474,12 @@ class _LiveSelfieScreenState extends State<LiveSelfieScreen>
 
   Future<void> _captureAutomatically() async {
     final camera = _camera;
+
     if (camera == null ||
         !camera.value.isInitialized ||
         _capturing ||
-        _selfieFile != null) {
+        _selfieFile != null ||
+        _disposed) {
       return;
     }
 
@@ -357,19 +491,24 @@ class _LiveSelfieScreenState extends State<LiveSelfieScreen>
         await camera.stopImageStream();
       }
 
+      if (_disposed || !mounted) return;
+
       final photo = await camera.takePicture();
       final file = File(photo.path);
 
       final qualityPassed = await _checkCapturedPhoto(file);
-      if (!mounted) return;
+
+      if (!mounted || _disposed) return;
 
       if (!qualityPassed) {
         setState(() {
-          _status = 'Selfie is not clear';
+          _status = 'Selfie needs better lighting';
           _qualityStatus =
-              'Improve lighting, hold still and take the selfie again.';
+              'Improve lighting, hold still and try again.';
         });
+
         await _restartImageStream();
+
         return;
       }
 
@@ -378,10 +517,15 @@ class _LiveSelfieScreenState extends State<LiveSelfieScreen>
         _status = 'Selfie captured';
         _qualityStatus = 'Review your photo before continuing.';
       });
-    } catch (_) {
-      if (mounted) {
-        _showMessage('Could not capture selfie. Please try again.');
+    } catch (e) {
+      debugPrint('Selfie capture error: $e');
+
+      if (mounted && !_disposed) {
+        _showMessage(
+          'Could not capture selfie. Please try again.',
+        );
       }
+
       await _restartImageStream();
     } finally {
       _capturing = false;
@@ -392,11 +536,14 @@ class _LiveSelfieScreenState extends State<LiveSelfieScreen>
     try {
       final bytes = await file.readAsBytes();
       final decoded = img.decodeImage(bytes);
+
       if (decoded == null) return false;
 
-      if (decoded.width < 480 || decoded.height < 480) return false;
+      if (decoded.width < 480 || decoded.height < 480) {
+        return false;
+      }
 
-      // Basic brightness check; this is not a full image-quality guarantee.
+      // Basic brightness sampling, not full image-quality validation.
       final sampleX = math.max(1, decoded.width ~/ 30);
       final sampleY = math.max(1, decoded.height ~/ 30);
 
@@ -406,43 +553,64 @@ class _LiveSelfieScreenState extends State<LiveSelfieScreen>
       for (int y = 0; y < decoded.height; y += sampleY) {
         for (int x = 0; x < decoded.width; x += sampleX) {
           final pixel = decoded.getPixel(x, y);
+
           totalBrightness +=
-              (pixel.r.toDouble() + pixel.g.toDouble() + pixel.b.toDouble()) /
-                  3;
+              (pixel.r.toDouble() +
+                  pixel.g.toDouble() +
+                  pixel.b.toDouble()) /
+              3;
+
           count++;
         }
       }
 
       if (count == 0) return false;
+
       final brightness = totalBrightness / count;
+
       return brightness >= 35 && brightness <= 235;
-    } catch (_) {
+    } catch (e) {
+      debugPrint('Selfie quality check error: $e');
       return false;
     }
   }
 
   Future<void> _restartImageStream() async {
     final camera = _camera;
+
     if (!mounted ||
+        _disposed ||
         camera == null ||
         !camera.value.isInitialized ||
         camera.value.isStreamingImages ||
-        _selfieFile != null) {
+        _selfieFile != null ||
+        _uploading) {
       return;
     }
 
     try {
       await camera.startImageStream(_processCameraFrame);
-    } catch (_) {
-      _updateStatus(
-        'Camera needs restarting',
-        'Tap Retry Camera to continue.',
-      );
+
+      if (mounted && !_disposed) {
+        setState(() {
+          _cameraReady = true;
+        });
+      }
+    } catch (e) {
+      debugPrint('Restart camera stream error: $e');
+
+      if (mounted && !_disposed) {
+        setState(() {
+          _cameraReady = false;
+          _status = 'Camera needs restarting';
+          _qualityStatus = 'Tap Retry Camera to continue.';
+        });
+      }
     }
   }
 
   Future<void> _retakeSelfie() async {
-    if (_uploading || _capturing) return;
+    if (_uploading || _capturing || _disposed) return;
 
     setState(() {
       _selfieFile = null;
@@ -451,38 +619,58 @@ class _LiveSelfieScreenState extends State<LiveSelfieScreen>
       _qualityStatus = 'Waiting for your face';
     });
 
+    final camera = _camera;
+
+    if (camera == null || !camera.value.isInitialized) {
+      await _initializeCamera();
+      return;
+    }
+
     await _restartImageStream();
   }
 
   Future<void> _confirmSelfie() async {
     final file = _selfieFile;
-    if (file == null || _uploading) return;
+
+    if (file == null || _uploading || _disposed) {
+      return;
+    }
 
     final user = FirebaseAuth.instance.currentUser;
+
     if (user == null) {
-      _showMessage('Your session expired. Please log in again.');
+      _showMessage(
+        'Your session expired. Please log in again.',
+      );
       return;
     }
 
     setState(() => _uploading = true);
 
     try {
-      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final timestamp =
+          DateTime.now().millisecondsSinceEpoch;
+
       final storagePath =
           'walker_selfies/${user.uid}/selfie_$timestamp.jpg';
 
-      await FirebaseStorage.instance.ref(storagePath).putFile(
-            file,
-            SettableMetadata(
-              contentType: 'image/jpeg',
-              customMetadata: {
-                'userId': user.uid,
-                'documentType': 'selfie',
-              },
-            ),
-          );
+      final storageRef =
+          FirebaseStorage.instance.ref(storagePath);
 
-      // Do not write walkerId from the client.
+      await storageRef.putFile(
+        file,
+        SettableMetadata(
+          contentType: 'image/jpeg',
+          customMetadata: {
+            'userId': user.uid,
+            'documentType': 'selfie',
+          },
+        ),
+      );
+
+      if (_disposed || !mounted) return;
+
+      // Store the private Storage path, not a public download URL.
       await FirebaseFirestore.instance
           .collection('walkers')
           .doc(user.uid)
@@ -501,34 +689,50 @@ class _LiveSelfieScreenState extends State<LiveSelfieScreen>
         SetOptions(merge: true),
       );
 
-      if (!mounted) return;
+      if (!mounted || _disposed) return;
 
       await _stopCamera();
 
+      if (!mounted || _disposed) return;
+
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(
+        MaterialPageRoute<void>(
           builder: (_) => const KycDocumentsScreen(),
         ),
       );
     } on FirebaseException catch (e) {
+      debugPrint('Selfie upload error: ${e.code}');
+
       if (!mounted) return;
-      _showMessage(
-        e.code == 'permission-denied' || e.code == 'unauthorized'
-            ? 'Access denied. Check Firebase Storage and Firestore rules.'
-            : e.message ?? 'Unable to upload your selfie.',
-      );
-    } catch (_) {
+
+      final message =
+          e.code == 'permission-denied' ||
+                  e.code == 'unauthorized'
+              ? 'Access denied. Check Firebase Storage and Firestore Rules.'
+              : e.code == 'network-request-failed'
+                  ? 'Network error. Please check your connection.'
+                  : e.message ?? 'Unable to upload your selfie.';
+
+      _showMessage(message);
+    } catch (e) {
+      debugPrint('Unexpected selfie upload error: $e');
+
       if (mounted) {
-        _showMessage('Something went wrong. Please try again.');
+        _showMessage(
+          'Something went wrong. Please try again.',
+        );
       }
     } finally {
-      if (mounted) setState(() => _uploading = false);
+      if (mounted && !_disposed) {
+        setState(() => _uploading = false);
+      }
     }
   }
 
   Future<void> _stopCamera() async {
     final camera = _camera;
+
     _camera = null;
     _cameraReady = false;
 
@@ -538,6 +742,7 @@ class _LiveSelfieScreenState extends State<LiveSelfieScreen>
           await camera.stopImageStream();
         }
       } catch (_) {}
+
       try {
         await camera.dispose();
       } catch (_) {}
@@ -545,18 +750,27 @@ class _LiveSelfieScreenState extends State<LiveSelfieScreen>
   }
 
   void _showMessage(String message) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    if (!mounted || _disposed) return;
+
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(message),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
   }
 
   @override
   void dispose() {
     _disposed = true;
+
     WidgetsBinding.instance.removeObserver(this);
+
     unawaited(_stopCamera());
     unawaited(_faceDetector?.close());
+
     super.dispose();
   }
 
@@ -581,7 +795,12 @@ class _LiveSelfieScreenState extends State<LiveSelfieScreen>
               children: [
                 Expanded(
                   child: ListView(
-                    padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
+                    padding: const EdgeInsets.fromLTRB(
+                      20,
+                      18,
+                      20,
+                      20,
+                    ),
                     children: [
                       const Center(
                         child: Text(
@@ -631,7 +850,8 @@ class _LiveSelfieScreenState extends State<LiveSelfieScreen>
                             ? Image.file(
                                 previewFile,
                                 fit: BoxFit.cover,
-                                errorBuilder: (_, __, ___) => const Center(
+                                errorBuilder: (_, __, ___) =>
+                                    const Center(
                                   child: Icon(
                                     Icons.broken_image_outlined,
                                     size: 56,
@@ -678,11 +898,18 @@ class _LiveSelfieScreenState extends State<LiveSelfieScreen>
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
+                  padding: const EdgeInsets.fromLTRB(
+                    20,
+                    12,
+                    20,
+                    16,
+                  ),
                   decoration: const BoxDecoration(
                     color: Colors.white,
                     border: Border(
-                      top: BorderSide(color: Color(0xFFE8E8E8)),
+                      top: BorderSide(
+                        color: Color(0xFFE8E8E8),
+                      ),
                     ),
                   ),
                   child: previewFile == null
@@ -690,7 +917,10 @@ class _LiveSelfieScreenState extends State<LiveSelfieScreen>
                           width: double.infinity,
                           height: 52,
                           child: OutlinedButton(
-                            onPressed: _initializing || _capturing || _uploading
+                            onPressed: _initializing ||
+                                    _capturing ||
+                                    _uploading ||
+                                    _cameraOperationInProgress
                                 ? null
                                 : _initializeCamera,
                             child: Text(
@@ -708,15 +938,18 @@ class _LiveSelfieScreenState extends State<LiveSelfieScreen>
                               width: double.infinity,
                               height: 50,
                               child: OutlinedButton(
-                                onPressed: _uploading ? null : _retakeSelfie,
+                                onPressed:
+                                    _uploading ? null : _retakeSelfie,
                                 style: OutlinedButton.styleFrom(
                                   foregroundColor:
                                       DojoPartnerTheme.primaryOrange,
                                   side: const BorderSide(
-                                    color: DojoPartnerTheme.primaryOrange,
+                                    color:
+                                        DojoPartnerTheme.primaryOrange,
                                   ),
                                   shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(13),
+                                    borderRadius:
+                                        BorderRadius.circular(13),
                                   ),
                                 ),
                                 child: const Text('Retake Selfie'),
@@ -727,19 +960,27 @@ class _LiveSelfieScreenState extends State<LiveSelfieScreen>
                               width: double.infinity,
                               height: 52,
                               child: ElevatedButton(
-                                onPressed: _uploading ? null : _confirmSelfie,
+                                onPressed:
+                                    _uploading ? null : _confirmSelfie,
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor:
                                       DojoPartnerTheme.primaryOrange,
                                   foregroundColor: Colors.white,
                                   elevation: 0,
                                   shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(13),
+                                    borderRadius:
+                                        BorderRadius.circular(13),
                                   ),
                                 ),
                                 child: _uploading
-                                    ? const CircularProgressIndicator(
-                                        color: Colors.white,
+                                    ? const SizedBox(
+                                        width: 23,
+                                        height: 23,
+                                        child:
+                                            CircularProgressIndicator(
+                                          color: Colors.white,
+                                          strokeWidth: 2.5,
+                                        ),
                                       )
                                     : const Text(
                                         'Continue',
