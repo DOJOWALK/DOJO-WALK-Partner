@@ -31,7 +31,9 @@ class _ApplicationSubmittedScreenState
           'Log Out',
           style: TextStyle(fontWeight: FontWeight.w800),
         ),
-        content: const Text('Are you sure you want to log out?'),
+        content: const Text(
+          'Are you sure you want to log out?',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
@@ -59,22 +61,28 @@ class _ApplicationSubmittedScreenState
 
       if (!mounted) return;
 
-      // The root authentication gate should show the login screen
-      // after Firebase signs out.
-      Navigator.of(context).popUntil((route) => route.isFirst);
+      Navigator.of(context).popUntil(
+        (route) => route.isFirst,
+      );
     } catch (e) {
+      debugPrint('Logout error: $e');
+
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Unable to log out. Please try again.'),
+          content: Text(
+            'Unable to log out. Please try again.',
+          ),
         ),
       );
     }
   }
 
   Future<void> _openHelpSupport() async {
-    final categoryController = ValueNotifier<String>('Application Status');
+    final categoryController =
+        ValueNotifier<String>('Application Status');
+
     final messageController = TextEditingController();
 
     await showDialog<void>(
@@ -102,7 +110,10 @@ class _ApplicationSubmittedScreenState
                 children: [
                   const Text(
                     'What do you need help with?',
-                    style: TextStyle(color: _muted, fontSize: 13),
+                    style: TextStyle(
+                      color: _muted,
+                      fontSize: 13,
+                    ),
                   ),
                   const SizedBox(height: 10),
                   ValueListenableBuilder<String>(
@@ -134,17 +145,20 @@ class _ApplicationSubmittedScreenState
                             child: Text('Other'),
                           ),
                         ],
-                        onChanged: (value) {
-                          if (value != null) {
-                            categoryController.value = value;
-                          }
-                        },
+                        onChanged: sending
+                            ? null
+                            : (value) {
+                                if (value != null) {
+                                  categoryController.value = value;
+                                }
+                              },
                       );
                     },
                   ),
                   const SizedBox(height: 14),
                   TextField(
                     controller: messageController,
+                    enabled: !sending,
                     minLines: 3,
                     maxLines: 5,
                     maxLength: 1000,
@@ -180,13 +194,15 @@ class _ApplicationSubmittedScreenState
                               messageController.text.trim();
 
                           if (message.isEmpty) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text(
-                                  'Please describe your issue.',
+                            ScaffoldMessenger.of(context)
+                              ..hideCurrentSnackBar()
+                              ..showSnackBar(
+                                const SnackBar(
+                                  content: Text(
+                                    'Please describe your issue.',
+                                  ),
                                 ),
-                              ),
-                            );
+                              );
                             return;
                           }
 
@@ -194,13 +210,15 @@ class _ApplicationSubmittedScreenState
                               FirebaseAuth.instance.currentUser;
 
                           if (user == null) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text(
-                                  'Please log in again to contact support.',
+                            ScaffoldMessenger.of(context)
+                              ..hideCurrentSnackBar()
+                              ..showSnackBar(
+                                const SnackBar(
+                                  content: Text(
+                                    'Please log in again to contact support.',
+                                  ),
                                 ),
-                              ),
-                            );
+                              );
                             return;
                           }
 
@@ -225,23 +243,37 @@ class _ApplicationSubmittedScreenState
 
                             Navigator.pop(dialogContext);
 
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text(
-                                  'Support request submitted successfully.',
-                                ),
-                              ),
-                            );
-                          } catch (e) {
-                            setDialogState(() => sending = false);
+                            if (!mounted) return;
 
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text(
-                                  'Unable to submit your request. Please try again.',
+                            ScaffoldMessenger.of(this.context)
+                              ..hideCurrentSnackBar()
+                              ..showSnackBar(
+                                const SnackBar(
+                                  content: Text(
+                                    'Support request submitted successfully.',
+                                  ),
                                 ),
-                              ),
+                              );
+                          } catch (e) {
+                            debugPrint(
+                              'Support request error: $e',
                             );
+
+                            if (!dialogContext.mounted) return;
+
+                            setDialogState(
+                              () => sending = false,
+                            );
+
+                            ScaffoldMessenger.of(this.context)
+                              ..hideCurrentSnackBar()
+                              ..showSnackBar(
+                                const SnackBar(
+                                  content: Text(
+                                    'Unable to submit your request. Please try again.',
+                                  ),
+                                ),
+                              );
                           }
                         },
                   child: sending
@@ -274,7 +306,9 @@ class _ApplicationSubmittedScreenState
       return const Scaffold(
         backgroundColor: _background,
         body: Center(
-          child: Text('Session expired. Please log in again.'),
+          child: Text(
+            'Session expired. Please log in again.',
+          ),
         ),
       );
     }
@@ -377,16 +411,17 @@ class _ApplicationSubmittedScreenState
           if (snapshot.connectionState == ConnectionState.waiting &&
               !snapshot.hasData) {
             return const Center(
-              child: CircularProgressIndicator(color: _orange),
+              child: CircularProgressIndicator(
+                color: _orange,
+              ),
             );
           }
 
           final data = snapshot.data?.data() ?? {};
 
-          final rawStatus =
-              (data['status'] ?? 'under_review')
-                  .toString()
-                  .toLowerCase();
+          final rawStatus = (data['status'] ?? 'under_review')
+              .toString()
+              .toLowerCase();
 
           final isApproved = data['isApproved'] == true;
           final isActive = data['isActive'] == true;
@@ -409,17 +444,22 @@ class _ApplicationSubmittedScreenState
 
           return SafeArea(
             child: ListView(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
+              padding: const EdgeInsets.fromLTRB(
+                20,
+                16,
+                20,
+                28,
+              ),
               children: [
                 const SizedBox(height: 12),
 
-                // Success icon
+                // Application submitted icon.
                 Center(
                   child: Container(
                     height: 88,
                     width: 88,
                     decoration: BoxDecoration(
-                      color: _green.withOpacity(0.10),
+                      color: _green.withValues(alpha: 0.10),
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(
@@ -529,7 +569,9 @@ class _ApplicationSubmittedScreenState
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFEEEEEE)),
+        border: Border.all(
+          color: const Color(0xFFEEEEEE),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -594,8 +636,12 @@ class _ApplicationSubmittedScreenState
                   Expanded(
                     child: Container(
                       width: 2,
-                      constraints: const BoxConstraints(minHeight: 28),
-                      margin: const EdgeInsets.symmetric(vertical: 4),
+                      constraints: const BoxConstraints(
+                        minHeight: 28,
+                      ),
+                      margin: const EdgeInsets.symmetric(
+                        vertical: 4,
+                      ),
                       color: const Color(0xFFEAEAEA),
                     ),
                   ),
@@ -649,7 +695,9 @@ class _ApplicationSubmittedScreenState
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFEEEEEE)),
+        border: Border.all(
+          color: const Color(0xFFEEEEEE),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -670,7 +718,7 @@ class _ApplicationSubmittedScreenState
               vertical: 9,
             ),
             decoration: BoxDecoration(
-              color: statusColor.withOpacity(0.10),
+              color: statusColor.withValues(alpha: 0.10),
               borderRadius: BorderRadius.circular(9),
             ),
             child: Row(
