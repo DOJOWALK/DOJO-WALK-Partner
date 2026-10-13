@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 
 import '../../theme.dart';
 import '../../features/live_walk/screens/live_walk_screen.dart';
+
+class NavigationScreen extends StatefulWidget {
   const NavigationScreen({
     super.key,
     required this.time,
