@@ -445,7 +445,7 @@ class _PersonalDetailsScreenState
 
   Widget _buildGenderField() {
     return DropdownButtonFormField<String>(
-      value: _gender,
+  initialValue: selectedValue,
       isExpanded: true,
       decoration: _inputDecoration(
         label: 'Gender (Optional)',
