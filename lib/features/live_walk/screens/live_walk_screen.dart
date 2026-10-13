@@ -9,8 +9,8 @@ import 'package:google_maps_flutter/google_maps_flutter.dart' as maps;
 
 import '../../theme.dart';
 import '../services/location_permission_service.dart';
-import 'customer_otp_sheet.dart';
-import 'walk_summary_screen.dart';
+import '../../../screens/home/customer_otp_sheet.dart';
+import '../../../screens/home/walk_summary_screen.dart';
 
 class LiveWalkScreen extends StatefulWidget {
   const LiveWalkScreen({
