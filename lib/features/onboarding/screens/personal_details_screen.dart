@@ -35,7 +35,6 @@ class _PersonalDetailsScreenState
     _loadExistingDetails();
   }
 
-  // Load saved personal details from Firestore.
   Future<void> _loadExistingDetails() async {
     final user = FirebaseAuth.instance.currentUser;
 
@@ -119,7 +118,6 @@ class _PersonalDetailsScreenState
     super.dispose();
   }
 
-  // Calculate age using the complete date of birth.
   int _calculateAge(DateTime dob) {
     final now = DateTime.now();
 
@@ -146,8 +144,7 @@ class _PersonalDetailsScreenState
       now.day,
     );
 
-    DateTime initialDate =
-        _dateOfBirth ?? lastAllowedDate;
+    DateTime initialDate = _dateOfBirth ?? lastAllowedDate;
 
     if (initialDate.isAfter(lastAllowedDate)) {
       initialDate = lastAllowedDate;
@@ -228,7 +225,6 @@ class _PersonalDetailsScreenState
       if (email.isNotEmpty) {
         data['email'] = email;
       } else {
-        // Clear an old optional email if the user removed it.
         data['email'] = FieldValue.delete();
       }
 
@@ -238,8 +234,8 @@ class _PersonalDetailsScreenState
         data['gender'] = FieldValue.delete();
       }
 
-      // Set initial application fields only for a new document.
-      // Do not overwrite an existing approval or application status.
+      // Initialize application fields only for a new document.
+      // Existing approval status will not be overwritten.
       if (!snapshot.exists) {
         data.addAll({
           'status': 'under_review',
@@ -409,8 +405,8 @@ class _PersonalDetailsScreenState
     final dateText = dob == null
         ? 'Select your date of birth'
         : '${dob.day.toString().padLeft(2, '0')}/'
-          '${dob.month.toString().padLeft(2, '0')}/'
-          '${dob.year}';
+            '${dob.month.toString().padLeft(2, '0')}/'
+            '${dob.year}';
 
     return InkWell(
       onTap: _isSaving ? null : _selectDate,
@@ -445,7 +441,7 @@ class _PersonalDetailsScreenState
 
   Widget _buildGenderField() {
     return DropdownButtonFormField<String>(
-  initialValue: selectedValue,
+      initialValue: _gender,
       isExpanded: true,
       decoration: _inputDecoration(
         label: 'Gender (Optional)',
