@@ -3,7 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../../../theme.dart';
-import 'partner_home_screen.dart';
+import '../../../screens/home/partner_home_screen.dart';
 import 'application_submitted_screen.dart';
 
 class AccountCheckScreen extends StatefulWidget {
