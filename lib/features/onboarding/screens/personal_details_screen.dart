@@ -24,7 +24,10 @@ class _PersonalDetailsScreenState
   DateTime? _dateOfBirth;
   String? _gender;
 
+  bool _isLoading = true;
   bool _isSaving = false;
+
+  static const int _minimumAge = 18;
 
   @override
   void initState() {
@@ -32,10 +35,17 @@ class _PersonalDetailsScreenState
     _loadExistingDetails();
   }
 
+  // Load saved personal details from Firestore.
   Future<void> _loadExistingDetails() async {
     final user = FirebaseAuth.instance.currentUser;
 
-    if (user == null) return;
+    if (user == null) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        _showMessage('Please login again to continue.');
+      }
+      return;
+    }
 
     _phoneController.text = user.phoneNumber ?? '';
 
@@ -45,16 +55,21 @@ class _PersonalDetailsScreenState
           .doc(user.uid)
           .get();
 
-      if (!mounted || !snapshot.exists) return;
+      if (!mounted) return;
 
-      final data = snapshot.data()!;
+      if (snapshot.exists) {
+        final data = snapshot.data() ?? <String, dynamic>{};
 
-      setState(() {
         _nameController.text =
             data['fullName'] as String? ?? '';
 
         _emailController.text =
             data['email'] as String? ?? '';
+
+        // Keep the authenticated phone number as the source of truth.
+        _phoneController.text = user.phoneNumber ??
+            data['phone'] as String? ??
+            '';
 
         final gender = data['gender'] as String?;
 
@@ -67,10 +82,32 @@ class _PersonalDetailsScreenState
 
         if (dob is Timestamp) {
           _dateOfBirth = dob.toDate();
+        } else if (dob is String) {
+          _dateOfBirth = DateTime.tryParse(dob);
         }
-      });
+      }
     } on FirebaseException catch (e) {
-      debugPrint('Unable to load Walker details: ${e.code}');
+      debugPrint(
+        'Unable to load Walker details: ${e.code}',
+      );
+
+      if (mounted) {
+        _showMessage(
+          e.code == 'permission-denied'
+              ? 'Unable to access your profile. Check Firestore Rules.'
+              : 'Could not load saved details. Please try again.',
+        );
+      }
+    } catch (e) {
+      debugPrint('Personal details loading error: $e');
+
+      if (mounted) {
+        _showMessage('Unable to load your saved details.');
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -82,16 +119,58 @@ class _PersonalDetailsScreenState
     super.dispose();
   }
 
-  Future<void> _selectDate() async {
+  // Calculate age using the complete date of birth.
+  int _calculateAge(DateTime dob) {
     final now = DateTime.now();
+
+    int age = now.year - dob.year;
+
+    final birthdayNotReached = now.month < dob.month ||
+        (now.month == dob.month && now.day < dob.day);
+
+    if (birthdayNotReached) {
+      age--;
+    }
+
+    return age;
+  }
+
+  Future<void> _selectDate() async {
+    if (_isSaving) return;
+
+    final now = DateTime.now();
+
+    final lastAllowedDate = DateTime(
+      now.year - _minimumAge,
+      now.month,
+      now.day,
+    );
+
+    DateTime initialDate =
+        _dateOfBirth ?? lastAllowedDate;
+
+    if (initialDate.isAfter(lastAllowedDate)) {
+      initialDate = lastAllowedDate;
+    }
 
     final selected = await showDatePicker(
       context: context,
-      initialDate: _dateOfBirth ??
-          DateTime(now.year - 18, now.month, now.day),
+      initialDate: initialDate,
       firstDate: DateTime(1940),
-      lastDate: now,
-      helpText: 'Date of Birth',
+      lastDate: lastAllowedDate,
+      helpText: 'Select Date of Birth',
+      cancelText: 'Cancel',
+      confirmText: 'Confirm',
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: Theme.of(context).colorScheme.copyWith(
+                  primary: DojoPartnerTheme.primaryOrange,
+                ),
+          ),
+          child: child!,
+        );
+      },
     );
 
     if (selected != null && mounted) {
@@ -100,25 +179,30 @@ class _PersonalDetailsScreenState
   }
 
   Future<void> _continue() async {
-    if (!_formKey.currentState!.validate()) return;
+    if (_isLoading || _isSaving) return;
 
-    if (_dateOfBirth == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please select your date of birth.'),
-        ),
-      );
+    FocusScope.of(context).unfocus();
+
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+
+    final dob = _dateOfBirth;
+
+    if (dob == null) {
+      _showMessage('Please select your date of birth.');
+      return;
+    }
+
+    if (_calculateAge(dob) < _minimumAge) {
+      _showMessage('You must be at least 18 years old.');
       return;
     }
 
     final user = FirebaseAuth.instance.currentUser;
 
     if (user == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please login again.'),
-        ),
-      );
+      _showMessage('Your session expired. Please login again.');
       return;
     }
 
@@ -135,7 +219,7 @@ class _PersonalDetailsScreenState
         'userId': user.uid,
         'fullName': _nameController.text.trim(),
         'phone': user.phoneNumber ?? '',
-        'dateOfBirth': Timestamp.fromDate(_dateOfBirth!),
+        'dateOfBirth': Timestamp.fromDate(dob),
         'updatedAt': FieldValue.serverTimestamp(),
       };
 
@@ -143,18 +227,26 @@ class _PersonalDetailsScreenState
 
       if (email.isNotEmpty) {
         data['email'] = email;
+      } else {
+        // Clear an old optional email if the user removed it.
+        data['email'] = FieldValue.delete();
       }
 
       if (_gender != null) {
         data['gender'] = _gender!;
+      } else {
+        data['gender'] = FieldValue.delete();
       }
 
+      // Set initial application fields only for a new document.
+      // Do not overwrite an existing approval or application status.
       if (!snapshot.exists) {
         data.addAll({
           'status': 'under_review',
           'isActive': false,
           'isApproved': false,
           'verificationStatus': 'pending',
+          'createdAt': FieldValue.serverTimestamp(),
         });
       }
 
@@ -167,30 +259,36 @@ class _PersonalDetailsScreenState
 
       Navigator.push(
         context,
-        MaterialPageRoute(
+        MaterialPageRoute<void>(
           builder: (_) => const LiveSelfieScreen(),
         ),
       );
     } on FirebaseException catch (e) {
       if (!mounted) return;
 
-      final message = e.code == 'permission-denied'
-          ? 'Permission denied. Please check Firestore Rules.'
-          : e.code == 'unavailable'
-              ? 'Network unavailable. Please try again.'
-              : e.message ?? 'Unable to save details.';
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(message)),
+      debugPrint(
+        'Personal details save error: ${e.code}',
       );
+
+      final message = switch (e.code) {
+        'permission-denied' =>
+          'Permission denied. Please check Firestore Rules.',
+        'unavailable' =>
+          'Network unavailable. Please try again.',
+        'unauthenticated' =>
+          'Your session expired. Please login again.',
+        _ => e.message ?? 'Unable to save personal details.',
+      };
+
+      _showMessage(message);
     } catch (e) {
-      if (!mounted) return;
+      debugPrint('Unexpected save error: $e');
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Something went wrong. Please try again.'),
-        ),
-      );
+      if (mounted) {
+        _showMessage(
+          'Something went wrong. Please try again.',
+        );
+      }
     } finally {
       if (mounted) {
         setState(() => _isSaving = false);
@@ -198,175 +296,376 @@ class _PersonalDetailsScreenState
     }
   }
 
+  void _showMessage(String message) {
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(message),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+  }
+
+  InputDecoration _inputDecoration({
+    required String label,
+    required IconData icon,
+    String? hint,
+  }) {
+    return InputDecoration(
+      labelText: label,
+      hintText: hint,
+      prefixIcon: Icon(icon),
+      filled: true,
+      fillColor: Colors.white,
+      contentPadding: const EdgeInsets.symmetric(
+        horizontal: 16,
+        vertical: 17,
+      ),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: const BorderSide(
+          color: Color(0xFFE5E5E5),
+        ),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: const BorderSide(
+          color: Color(0xFFE5E5E5),
+        ),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: const BorderSide(
+          color: DojoPartnerTheme.primaryOrange,
+          width: 1.5,
+        ),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: const BorderSide(
+          color: Colors.red,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeader() {
+    return Column(
+      children: [
+        Container(
+          width: 68,
+          height: 68,
+          decoration: BoxDecoration(
+            color: DojoPartnerTheme.primaryOrange
+                .withValues(alpha: 0.10),
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: const Icon(
+            Icons.person_outline_rounded,
+            size: 36,
+            color: DojoPartnerTheme.primaryOrange,
+          ),
+        ),
+        const SizedBox(height: 18),
+        const Text(
+          'DOJO PARTNER',
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w900,
+            letterSpacing: 2.5,
+            color: DojoPartnerTheme.primaryOrange,
+          ),
+        ),
+        const SizedBox(height: 10),
+        const Text(
+          'Personal Details',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 25,
+            fontWeight: FontWeight.w800,
+            color: DojoPartnerTheme.textPrimary,
+          ),
+        ),
+        const SizedBox(height: 8),
+        const Text(
+          'Enter your details to continue your partner registration.',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 14,
+            height: 1.5,
+            color: DojoPartnerTheme.textSecondary,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDateOfBirthField() {
+    final dob = _dateOfBirth;
+
+    final dateText = dob == null
+        ? 'Select your date of birth'
+        : '${dob.day.toString().padLeft(2, '0')}/'
+          '${dob.month.toString().padLeft(2, '0')}/'
+          '${dob.year}';
+
+    return InkWell(
+      onTap: _isSaving ? null : _selectDate,
+      borderRadius: BorderRadius.circular(14),
+      child: InputDecorator(
+        decoration: _inputDecoration(
+          label: 'Date of Birth *',
+          icon: Icons.calendar_month_outlined,
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                dateText,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: dob == null
+                      ? DojoPartnerTheme.textSecondary
+                      : DojoPartnerTheme.textPrimary,
+                ),
+              ),
+            ),
+            const Icon(
+              Icons.keyboard_arrow_down_rounded,
+              color: DojoPartnerTheme.textSecondary,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildGenderField() {
+    return DropdownButtonFormField<String>(
+      value: _gender,
+      isExpanded: true,
+      decoration: _inputDecoration(
+        label: 'Gender (Optional)',
+        icon: Icons.wc_outlined,
+      ),
+      items: const [
+        DropdownMenuItem(
+          value: 'male',
+          child: Text('Male'),
+        ),
+        DropdownMenuItem(
+          value: 'female',
+          child: Text('Female'),
+        ),
+        DropdownMenuItem(
+          value: 'other',
+          child: Text('Other'),
+        ),
+      ],
+      onChanged: _isSaving
+          ? null
+          : (value) {
+              setState(() => _gender = value);
+            },
+    );
+  }
+
+  Widget _buildForm() {
+    return Form(
+      key: _formKey,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          TextFormField(
+            controller: _nameController,
+            enabled: !_isSaving,
+            textCapitalization: TextCapitalization.words,
+            textInputAction: TextInputAction.next,
+            autofillHints: const [AutofillHints.name],
+            decoration: _inputDecoration(
+              label: 'Full Name *',
+              icon: Icons.person_outline,
+              hint: 'Enter your full name',
+            ),
+            validator: (value) {
+              final name = value?.trim() ?? '';
+
+              if (name.isEmpty) {
+                return 'Full name is required.';
+              }
+
+              if (name.length < 3) {
+                return 'Enter at least 3 characters.';
+              }
+
+              if (name.length > 80) {
+                return 'Name cannot exceed 80 characters.';
+              }
+
+              return null;
+            },
+          ),
+          const SizedBox(height: 18),
+          TextFormField(
+            controller: _phoneController,
+            enabled: false,
+            decoration: _inputDecoration(
+              label: 'Verified Mobile Number',
+              icon: Icons.phone_outlined,
+            ),
+          ),
+          const SizedBox(height: 18),
+          _buildDateOfBirthField(),
+          const SizedBox(height: 18),
+          _buildGenderField(),
+          const SizedBox(height: 18),
+          TextFormField(
+            controller: _emailController,
+            enabled: !_isSaving,
+            keyboardType: TextInputType.emailAddress,
+            textInputAction: TextInputAction.done,
+            autofillHints: const [AutofillHints.email],
+            decoration: _inputDecoration(
+              label: 'Email (Optional)',
+              icon: Icons.email_outlined,
+              hint: 'example@email.com',
+            ),
+            validator: (value) {
+              final email = value?.trim() ?? '';
+
+              if (email.isEmpty) return null;
+
+              final validEmail = RegExp(
+                r'^[^@\s]+@[^@\s]+\.[^@\s]+$',
+              ).hasMatch(email);
+
+              if (!validEmail) {
+                return 'Enter a valid email address.';
+              }
+
+              return null;
+            },
+          ),
+          const SizedBox(height: 18),
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFFF5EB),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                color: DojoPartnerTheme.primaryOrange
+                    .withValues(alpha: 0.25),
+              ),
+            ),
+            child: const Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(
+                  Icons.info_outline_rounded,
+                  color: DojoPartnerTheme.primaryOrange,
+                  size: 21,
+                ),
+                SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Use your correct personal information. '
+                    'Your details will be reviewed during partner verification.',
+                    style: TextStyle(
+                      fontSize: 12,
+                      height: 1.5,
+                      color: DojoPartnerTheme.textPrimary,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 28),
+          SizedBox(
+            height: 54,
+            child: ElevatedButton(
+              onPressed: _isSaving || _isLoading
+                  ? null
+                  : _continue,
+              style: ElevatedButton.styleFrom(
+                backgroundColor:
+                    DojoPartnerTheme.primaryOrange,
+                foregroundColor: Colors.white,
+                disabledBackgroundColor:
+                    DojoPartnerTheme.primaryOrange
+                        .withValues(alpha: 0.5),
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+              ),
+              child: _isSaving
+                  ? const SizedBox(
+                      width: 23,
+                      height: 23,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.5,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          'Save & Continue',
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        SizedBox(width: 9),
+                        Icon(Icons.arrow_forward_rounded),
+                      ],
+                    ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFFAFAFA),
       appBar: AppBar(
         title: const Text('Personal Details'),
         centerTitle: true,
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
       ),
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 480),
-            child: Form(
-              key: _formKey,
-              child: ListView(
-                padding: const EdgeInsets.fromLTRB(
-                  24,
-                  24,
-                  24,
-                  32,
-                ),
-                children: [
-                  const SizedBox(height: 8),
-
-                  const Text(
-                    'Personal Information',
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.w800,
-                      color: DojoPartnerTheme.textPrimary,
+            child: _isLoading
+                ? const Center(
+                    child: CircularProgressIndicator(
+                      color: DojoPartnerTheme.primaryOrange,
                     ),
-                  ),
-
-                  const SizedBox(height: 24),
-
-                  TextFormField(
-                    controller: _nameController,
-                    enabled: !_isSaving,
-                    textCapitalization: TextCapitalization.words,
-                    decoration: const InputDecoration(
-                      labelText: 'Full Name *',
-                      prefixIcon: Icon(Icons.person_outline),
+                  )
+                : ListView(
+                    padding: const EdgeInsets.fromLTRB(
+                      24,
+                      24,
+                      24,
+                      32,
                     ),
-                    validator: (value) {
-                      final name = value?.trim() ?? '';
-
-                      if (name.length < 3) {
-                        return 'Enter your full name';
-                      }
-
-                      return null;
-                    },
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  TextFormField(
-                    controller: _phoneController,
-                    enabled: false,
-                    decoration: const InputDecoration(
-                      labelText: 'Mobile Number',
-                      prefixIcon: Icon(Icons.phone_outlined),
-                    ),
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  InkWell(
-                    onTap: _isSaving ? null : _selectDate,
-                    borderRadius: BorderRadius.circular(12),
-                    child: InputDecorator(
-                      decoration: const InputDecoration(
-                        labelText: 'Date of Birth *',
-                        prefixIcon:
-                            Icon(Icons.calendar_today_outlined),
-                      ),
-                      child: Text(
-                        _dateOfBirth == null
-                            ? 'Select date'
-                            : '${_dateOfBirth!.day.toString().padLeft(2, '0')}/'
-                              '${_dateOfBirth!.month.toString().padLeft(2, '0')}/'
-                              '${_dateOfBirth!.year}',
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  DropdownButtonFormField<String>(
-                    value: _gender,
-                    decoration: const InputDecoration(
-                      labelText: 'Gender (Optional)',
-                      prefixIcon: Icon(Icons.person_outline),
-                    ),
-                    items: const [
-                      DropdownMenuItem(
-                        value: 'male',
-                        child: Text('Male'),
-                      ),
-                      DropdownMenuItem(
-                        value: 'female',
-                        child: Text('Female'),
-                      ),
-                      DropdownMenuItem(
-                        value: 'other',
-                        child: Text('Other'),
-                      ),
+                    children: [
+                      _buildHeader(),
+                      const SizedBox(height: 30),
+                      _buildForm(),
                     ],
-                    onChanged: _isSaving
-                        ? null
-                        : (value) {
-                            setState(() => _gender = value);
-                          },
                   ),
-
-                  const SizedBox(height: 20),
-
-                  TextFormField(
-                    controller: _emailController,
-                    enabled: !_isSaving,
-                    keyboardType: TextInputType.emailAddress,
-                    decoration: const InputDecoration(
-                      labelText: 'Email (Optional)',
-                      prefixIcon: Icon(Icons.email_outlined),
-                    ),
-                    validator: (value) {
-                      final email = value?.trim() ?? '';
-
-                      if (email.isNotEmpty &&
-                          !RegExp(
-                            r'^[^@\s]+@[^@\s]+\.[^@\s]+$',
-                          ).hasMatch(email)) {
-                        return 'Enter a valid email address';
-                      }
-
-                      return null;
-                    },
-                  ),
-
-                  const SizedBox(height: 32),
-
-                  SizedBox(
-                    height: 54,
-                    child: ElevatedButton(
-                      onPressed: _isSaving ? null : _continue,
-                      child: _isSaving
-                          ? const SizedBox(
-                              width: 22,
-                              height: 22,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2.5,
-                                color: Colors.white,
-                              ),
-                            )
-                          : const Row(
-                              mainAxisAlignment:
-                                  MainAxisAlignment.center,
-                              children: [
-                                Text('Save & Continue'),
-                                SizedBox(width: 8),
-                                Icon(
-                                  Icons.arrow_forward_rounded,
-                                ),
-                              ],
-                            ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
           ),
         ),
       ),
