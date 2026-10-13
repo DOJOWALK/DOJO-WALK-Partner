@@ -16,25 +16,107 @@ class PersonalDetailsScreen extends StatefulWidget {
 class _PersonalDetailsScreenState
     extends State<PersonalDetailsScreen> {
   final _formKey = GlobalKey<FormState>();
+
   final _nameController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _phoneController = TextEditingController();
+
+  DateTime? _dateOfBirth;
+  String? _gender;
 
   bool _isSaving = false;
 
   @override
+  void initState() {
+    super.initState();
+    _loadExistingDetails();
+  }
+
+  Future<void> _loadExistingDetails() async {
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (user == null) return;
+
+    _phoneController.text = user.phoneNumber ?? '';
+
+    try {
+      final snapshot = await FirebaseFirestore.instance
+          .collection('walkers')
+          .doc(user.uid)
+          .get();
+
+      if (!mounted || !snapshot.exists) return;
+
+      final data = snapshot.data()!;
+
+      setState(() {
+        _nameController.text =
+            data['fullName'] as String? ?? '';
+
+        _emailController.text =
+            data['email'] as String? ?? '';
+
+        final gender = data['gender'] as String?;
+
+        if (gender != null &&
+            ['male', 'female', 'other'].contains(gender)) {
+          _gender = gender;
+        }
+
+        final dob = data['dateOfBirth'];
+
+        if (dob is Timestamp) {
+          _dateOfBirth = dob.toDate();
+        }
+      });
+    } on FirebaseException catch (e) {
+      debugPrint('Unable to load Walker details: ${e.code}');
+    }
+  }
+
+  @override
   void dispose() {
     _nameController.dispose();
+    _emailController.dispose();
+    _phoneController.dispose();
     super.dispose();
+  }
+
+  Future<void> _selectDate() async {
+    final now = DateTime.now();
+
+    final selected = await showDatePicker(
+      context: context,
+      initialDate: _dateOfBirth ??
+          DateTime(now.year - 18, now.month, now.day),
+      firstDate: DateTime(1940),
+      lastDate: now,
+      helpText: 'Date of Birth',
+    );
+
+    if (selected != null && mounted) {
+      setState(() => _dateOfBirth = selected);
+    }
   }
 
   Future<void> _continue() async {
     if (!_formKey.currentState!.validate()) return;
+
+    if (_dateOfBirth == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please select your date of birth.'),
+        ),
+      );
+      return;
+    }
 
     final user = FirebaseAuth.instance.currentUser;
 
     if (user == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Session expired. Please login again.'),
+          content: Text('Please login again.'),
         ),
       );
       return;
@@ -43,26 +125,31 @@ class _PersonalDetailsScreenState
     setState(() => _isSaving = true);
 
     try {
-      final uid = user.uid;
-      final phone = user.phoneNumber ?? '';
-
       final walkerRef = FirebaseFirestore.instance
           .collection('walkers')
-          .doc(uid);
+          .doc(user.uid);
 
-      // Check whether the Walker document already exists.
-      final walkerSnapshot = await walkerRef.get();
+      final snapshot = await walkerRef.get();
 
-      final Map<String, dynamic> data = {
-        'userId': uid,
+      final data = <String, dynamic>{
+        'userId': user.uid,
         'fullName': _nameController.text.trim(),
-        'phone': phone,
+        'phone': user.phoneNumber ?? '',
+        'dateOfBirth': Timestamp.fromDate(_dateOfBirth!),
         'updatedAt': FieldValue.serverTimestamp(),
       };
 
-      if (!walkerSnapshot.exists) {
-        // Required fields for creating a new Walker document.
-        // A Walker cannot approve or activate their own account.
+      final email = _emailController.text.trim();
+
+      if (email.isNotEmpty) {
+        data['email'] = email;
+      }
+
+      if (_gender != null) {
+        data['gender'] = _gender!;
+      }
+
+      if (!snapshot.exists) {
         data.addAll({
           'status': 'under_review',
           'isActive': false,
@@ -71,9 +158,6 @@ class _PersonalDetailsScreenState
         });
       }
 
-      // Merge preserves existing location, travel mode, KYC
-      // and other onboarding information.
-      // Never write walkerId from the client.
       await walkerRef.set(
         data,
         SetOptions(merge: true),
@@ -90,17 +174,11 @@ class _PersonalDetailsScreenState
     } on FirebaseException catch (e) {
       if (!mounted) return;
 
-      String message;
-
-      if (e.code == 'permission-denied') {
-        message =
-            'Permission denied. Please check Firestore Rules.';
-      } else if (e.code == 'unavailable') {
-        message =
-            'Network unavailable. Please try again.';
-      } else {
-        message = e.message ?? 'Unable to save details.';
-      }
+      final message = e.code == 'permission-denied'
+          ? 'Permission denied. Please check Firestore Rules.'
+          : e.code == 'unavailable'
+              ? 'Network unavailable. Please try again.'
+              : e.message ?? 'Unable to save details.';
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(message)),
@@ -110,9 +188,7 @@ class _PersonalDetailsScreenState
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text(
-            'Something went wrong. Please try again.',
-          ),
+          content: Text('Something went wrong. Please try again.'),
         ),
       );
     } finally {
@@ -124,10 +200,6 @@ class _PersonalDetailsScreenState
 
   @override
   Widget build(BuildContext context) {
-    final phone =
-        FirebaseAuth.instance.currentUser?.phoneNumber ??
-        'Verified mobile number';
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('Personal Details'),
@@ -147,70 +219,32 @@ class _PersonalDetailsScreenState
                   32,
                 ),
                 children: [
-                  Center(
-                    child: Container(
-                      width: 68,
-                      height: 68,
-                      decoration: BoxDecoration(
-                        color: DojoPartnerTheme.primaryOrange
-                            .withValues(alpha: 0.10),
-                        borderRadius: BorderRadius.circular(22),
-                      ),
-                      child: const Icon(
-                        Icons.person_outline_rounded,
-                        size: 34,
-                        color: DojoPartnerTheme.primaryOrange,
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 8),
 
                   const Text(
-                    'Tell us about yourself',
-                    textAlign: TextAlign.center,
+                    'Personal Information',
                     style: TextStyle(
-                      fontSize: 27,
+                      fontSize: 24,
                       fontWeight: FontWeight.w800,
                       color: DojoPartnerTheme.textPrimary,
                     ),
                   ),
 
-                  const SizedBox(height: 10),
-
-                  const Text(
-                    'Add your basic details to continue your DOJO Partner application.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 15,
-                      height: 1.5,
-                      color: DojoPartnerTheme.textSecondary,
-                    ),
-                  ),
-
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 24),
 
                   TextFormField(
                     controller: _nameController,
                     enabled: !_isSaving,
                     textCapitalization: TextCapitalization.words,
-                    textInputAction: TextInputAction.done,
                     decoration: const InputDecoration(
-                      labelText: 'Full Name',
-                      hintText: 'Enter your full name',
-                      prefixIcon: Icon(
-                        Icons.person_outline,
-                      ),
+                      labelText: 'Full Name *',
+                      prefixIcon: Icon(Icons.person_outline),
                     ),
                     validator: (value) {
                       final name = value?.trim() ?? '';
 
-                      if (name.isEmpty) {
-                        return 'Please enter your full name';
-                      }
-
                       if (name.length < 3) {
-                        return 'Name must be at least 3 characters';
+                        return 'Enter your full name';
                       }
 
                       return null;
@@ -219,106 +253,90 @@ class _PersonalDetailsScreenState
 
                   const SizedBox(height: 20),
 
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.grey.shade50,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: Colors.grey.shade200,
-                      ),
+                  TextFormField(
+                    controller: _phoneController,
+                    enabled: false,
+                    decoration: const InputDecoration(
+                      labelText: 'Mobile Number',
+                      prefixIcon: Icon(Icons.phone_outlined),
                     ),
-                    child: Row(
-                      children: [
-                        const Icon(
-                          Icons.verified_user_outlined,
-                          color: DojoPartnerTheme.primaryOrange,
-                        ),
-
-                        const SizedBox(width: 12),
-
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment:
-                                CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                'Verified Mobile Number',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
-                                  color: DojoPartnerTheme
-                                      .textSecondary,
-                                ),
-                              ),
-
-                              const SizedBox(height: 5),
-
-                              Text(
-                                phone,
-                                style: const TextStyle(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w700,
-                                  color: DojoPartnerTheme
-                                      .textPrimary,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-
-                        const Icon(
-                          Icons.check_circle,
-                          color: Colors.green,
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(height: 28),
-
-                  Row(
-                    children: [
-                      Container(
-                        width: 30,
-                        height: 30,
-                        alignment: Alignment.center,
-                        decoration: const BoxDecoration(
-                          color: DojoPartnerTheme.primaryOrange,
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Text(
-                          '2',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ),
-
-                      const SizedBox(width: 10),
-
-                      const Expanded(
-                        child: Text(
-                          'Personal Details',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w700,
-                            color: DojoPartnerTheme.textPrimary,
-                          ),
-                        ),
-                      ),
-
-                      const Text(
-                        'Next: Selfie',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: DojoPartnerTheme.textSecondary,
-                        ),
-                      ),
-                    ],
                   ),
 
                   const SizedBox(height: 20),
+
+                  InkWell(
+                    onTap: _isSaving ? null : _selectDate,
+                    borderRadius: BorderRadius.circular(12),
+                    child: InputDecorator(
+                      decoration: const InputDecoration(
+                        labelText: 'Date of Birth *',
+                        prefixIcon:
+                            Icon(Icons.calendar_today_outlined),
+                      ),
+                      child: Text(
+                        _dateOfBirth == null
+                            ? 'Select date'
+                            : '${_dateOfBirth!.day.toString().padLeft(2, '0')}/'
+                              '${_dateOfBirth!.month.toString().padLeft(2, '0')}/'
+                              '${_dateOfBirth!.year}',
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  DropdownButtonFormField<String>(
+                    value: _gender,
+                    decoration: const InputDecoration(
+                      labelText: 'Gender (Optional)',
+                      prefixIcon: Icon(Icons.person_outline),
+                    ),
+                    items: const [
+                      DropdownMenuItem(
+                        value: 'male',
+                        child: Text('Male'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'female',
+                        child: Text('Female'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'other',
+                        child: Text('Other'),
+                      ),
+                    ],
+                    onChanged: _isSaving
+                        ? null
+                        : (value) {
+                            setState(() => _gender = value);
+                          },
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  TextFormField(
+                    controller: _emailController,
+                    enabled: !_isSaving,
+                    keyboardType: TextInputType.emailAddress,
+                    decoration: const InputDecoration(
+                      labelText: 'Email (Optional)',
+                      prefixIcon: Icon(Icons.email_outlined),
+                    ),
+                    validator: (value) {
+                      final email = value?.trim() ?? '';
+
+                      if (email.isNotEmpty &&
+                          !RegExp(
+                            r'^[^@\s]+@[^@\s]+\.[^@\s]+$',
+                          ).hasMatch(email)) {
+                        return 'Enter a valid email address';
+                      }
+
+                      return null;
+                    },
+                  ),
+
+                  const SizedBox(height: 32),
 
                   SizedBox(
                     height: 54,
@@ -328,8 +346,7 @@ class _PersonalDetailsScreenState
                           ? const SizedBox(
                               width: 22,
                               height: 22,
-                              child:
-                                  CircularProgressIndicator(
+                              child: CircularProgressIndicator(
                                 strokeWidth: 2.5,
                                 color: Colors.white,
                               ),
