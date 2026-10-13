@@ -1,5 +1,4 @@
-
-name: DOJO Partner Release APK
+name: DOJO WALK Partner Release APK
 
 on:
   push:
@@ -9,6 +8,7 @@ on:
 
 jobs:
   build-release-apk:
+    name: Build DOJO WALK Partner APK
     runs-on: ubuntu-latest
 
     steps:
@@ -24,10 +24,10 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
-      - name: Analyze
+      - name: Analyze Flutter code
         run: flutter analyze
 
-      - name: Run tests
+      - name: Run Flutter tests
         run: flutter test
 
       - name: Build Release APK
@@ -36,7 +36,7 @@ jobs:
       - name: Upload Release APK
         uses: actions/upload-artifact@v4
         with:
-          name: dojo-partner-release-apk
+          name: dojo-walk-partner-release-apk
           path: build/app/outputs/flutter-apk/app-release.apk
           if-no-files-found: error
           retention-days: 7
