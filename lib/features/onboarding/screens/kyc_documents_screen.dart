@@ -1,4 +1,3 @@
-
 import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -8,7 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../theme.dart';
-import 'review_submit_screen.dart';
+import 'current_address_screen.dart';
 
 class KycDocumentsScreen extends StatefulWidget {
   const KycDocumentsScreen({super.key});
@@ -38,6 +37,9 @@ class _KycDocumentsScreenState extends State<KycDocumentsScreen> {
   double _uploadProgress = 0;
   String _uploadMessage = '';
 
+  int get _completedCount =>
+      _documents.values.where((file) => file != null).length;
+
   Future<void> _captureDocument(String key) async {
     if (_activeKey != null || _isUploading) return;
 
@@ -46,15 +48,24 @@ class _KycDocumentsScreenState extends State<KycDocumentsScreen> {
     try {
       final image = await _picker.pickImage(
         source: ImageSource.camera,
-        imageQuality: 85,
-        maxWidth: 1800,
+        imageQuality: 90,
+        maxWidth: 2000,
       );
 
       if (!mounted) return;
 
       if (image != null) {
+        final file = File(image.path);
+
+        if (!await file.exists()) {
+          _showMessage(
+            'Photo could not be saved. Please capture it again.',
+          );
+          return;
+        }
+
         setState(() {
-          _documents[key] = File(image.path);
+          _documents[key] = file;
         });
       }
     } catch (_) {
@@ -80,7 +91,7 @@ class _KycDocumentsScreenState extends State<KycDocumentsScreen> {
 
     if (missing.isNotEmpty) {
       _showMessage(
-        'Please capture all 3 documents before continuing.',
+        'Please capture all required documents before continuing.',
       );
       return;
     }
@@ -101,6 +112,20 @@ class _KycDocumentsScreenState extends State<KycDocumentsScreen> {
     final uploadedPaths = <String, String>{};
 
     try {
+      final walkerRef = FirebaseFirestore.instance
+          .collection('walkers')
+          .doc(user.uid);
+
+      // This screen updates an existing onboarding profile.
+      final walkerSnapshot = await walkerRef.get();
+
+      if (!walkerSnapshot.exists) {
+        throw Exception(
+          'Partner profile not found. Please complete your '
+          'personal details first.',
+        );
+      }
+
       const documentKeys = [
         'aadhaar_front',
         'aadhaar_back',
@@ -113,15 +138,14 @@ class _KycDocumentsScreenState extends State<KycDocumentsScreen> {
 
         if (!await file.exists()) {
           throw Exception(
-            'The ${_labels[key]} photo is no longer available. '
-            'Please capture it again.',
+            '${_labels[key]} photo is missing. Please capture it again.',
           );
         }
 
         final fileName =
             '${key}_${DateTime.now().millisecondsSinceEpoch}.jpg';
 
-        // Private Storage path; do not create public download URLs.
+        // Private Storage path; no public download URL is generated.
         final storagePath =
             'walker_kyc/${user.uid}/$fileName';
 
@@ -132,15 +156,16 @@ class _KycDocumentsScreenState extends State<KycDocumentsScreen> {
           });
         }
 
-        final ref =
-            FirebaseStorage.instance.ref().child(storagePath);
+        final ref = FirebaseStorage.instance
+            .ref()
+            .child(storagePath);
 
         await ref.putFile(
           file,
           SettableMetadata(
             contentType: 'image/jpeg',
             customMetadata: {
-              'walkerId': user.uid,
+              'userId': user.uid,
               'documentType': key,
             },
           ),
@@ -171,13 +196,9 @@ class _KycDocumentsScreenState extends State<KycDocumentsScreen> {
         };
       }
 
-      await FirebaseFirestore.instance
-          .collection('walkers')
-          .doc(user.uid)
-          .set(
+      await walkerRef.set(
         {
           'userId': user.uid,
-          'walkerId': user.uid,
           'kyc': {
             'documents': documentRecords,
           },
@@ -191,7 +212,7 @@ class _KycDocumentsScreenState extends State<KycDocumentsScreen> {
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
-          builder: (_) => const ReviewSubmitScreen(),
+          builder: (_) => const CurrentAddressScreen(),
         ),
       );
     } on FirebaseException catch (e) {
@@ -202,8 +223,10 @@ class _KycDocumentsScreenState extends State<KycDocumentsScreen> {
       if (e.code == 'permission-denied' ||
           e.code == 'unauthorized') {
         message =
-            'Firebase access denied. Storage and Firestore rules '
-            'must allow this KYC upload.';
+            'Firebase access denied. Please check your Storage '
+            'and Firestore security rules.';
+      } else if (e.code == 'object-not-found') {
+        message = 'Uploaded document was not found. Please retry.';
       } else {
         message = e.message ?? 'Unable to upload documents.';
       }
@@ -227,12 +250,16 @@ class _KycDocumentsScreenState extends State<KycDocumentsScreen> {
 
   void _showMessage(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
+      SnackBar(
+        content: Text(message),
+        behavior: SnackBarBehavior.floating,
+      ),
     );
   }
 
   Widget _documentCard(String key) {
     final file = _documents[key];
+    final isActive = _activeKey == key;
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -269,6 +296,15 @@ class _KycDocumentsScreenState extends State<KycDocumentsScreen> {
                   ),
                 ),
               ),
+              if (file != null)
+                const Text(
+                  'READY',
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w800,
+                    color: DojoPartnerTheme.primaryOrange,
+                  ),
+                ),
             ],
           ),
           const SizedBox(height: 14),
@@ -278,10 +314,10 @@ class _KycDocumentsScreenState extends State<KycDocumentsScreen> {
               child: Image.file(
                 file,
                 width: double.infinity,
-                height: 155,
+                height: 170,
                 fit: BoxFit.contain,
                 errorBuilder: (_, __, ___) => const SizedBox(
-                  height: 100,
+                  height: 110,
                   child: Center(
                     child: Icon(Icons.broken_image_outlined),
                   ),
@@ -290,16 +326,29 @@ class _KycDocumentsScreenState extends State<KycDocumentsScreen> {
             )
           else
             Container(
-              height: 100,
+              height: 110,
               width: double.infinity,
               decoration: BoxDecoration(
                 color: const Color(0xFFFFF5EC),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: const Icon(
-                Icons.add_a_photo_outlined,
-                size: 34,
-                color: DojoPartnerTheme.primaryOrange,
+              child: const Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.add_a_photo_outlined,
+                    size: 34,
+                    color: DojoPartnerTheme.primaryOrange,
+                  ),
+                  SizedBox(height: 8),
+                  Text(
+                    'Capture a clear document photo',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: DojoPartnerTheme.textSecondary,
+                    ),
+                  ),
+                ],
               ),
             ),
           const SizedBox(height: 12),
@@ -310,7 +359,7 @@ class _KycDocumentsScreenState extends State<KycDocumentsScreen> {
               onPressed: _activeKey != null || _isUploading
                   ? null
                   : () => _captureDocument(key),
-              icon: _activeKey == key
+              icon: isActive
                   ? const SizedBox(
                       width: 18,
                       height: 18,
@@ -324,15 +373,14 @@ class _KycDocumentsScreenState extends State<KycDocumentsScreen> {
                           : Icons.refresh_rounded,
                     ),
               label: Text(
-                _activeKey == key
+                isActive
                     ? 'Opening Camera...'
                     : file == null
                         ? 'Capture Document'
                         : 'Retake Photo',
               ),
               style: OutlinedButton.styleFrom(
-                foregroundColor:
-                    DojoPartnerTheme.primaryOrange,
+                foregroundColor: DojoPartnerTheme.primaryOrange,
                 side: const BorderSide(
                   color: DojoPartnerTheme.primaryOrange,
                 ),
@@ -349,8 +397,7 @@ class _KycDocumentsScreenState extends State<KycDocumentsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final completed =
-        _documents.values.where((file) => file != null).length;
+    final completed = _completedCount;
 
     return Scaffold(
       backgroundColor: const Color(0xFFFAFAFA),
@@ -378,35 +425,75 @@ class _KycDocumentsScreenState extends State<KycDocumentsScreen> {
                   ),
                   const SizedBox(height: 8),
                   const Text(
-                    'Capture clear, readable photos of your '
-                    'original documents.',
+                    'Capture clear, readable photos of your original '
+                    'documents. Avoid glare and keep all edges visible.',
                     style: TextStyle(
                       fontSize: 14,
                       height: 1.5,
                       color: DojoPartnerTheme.textSecondary,
                     ),
                   ),
-                  const SizedBox(height: 18),
-                  Text(
-                    '$completed of 3 documents captured',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w700,
-                    ),
+                  const SizedBox(height: 20),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(5),
+                          child: LinearProgressIndicator(
+                            value: completed / 3,
+                            minHeight: 6,
+                            color: DojoPartnerTheme.primaryOrange,
+                            backgroundColor: const Color(0xFFEAEAEA),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Text(
+                        '$completed of 3',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w800,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 18),
                   _documentCard('aadhaar_front'),
                   const SizedBox(height: 14),
                   _documentCard('aadhaar_back'),
                   const SizedBox(height: 14),
                   _documentCard('pan_card'),
                   const SizedBox(height: 18),
-                  const Text(
-                    'Submit only your own documents. Ensure '
-                    'the photos are readable and avoid glare.',
-                    style: TextStyle(
-                      fontSize: 12,
-                      height: 1.5,
-                      color: DojoPartnerTheme.textSecondary,
+                  Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFFF7F0),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: const Color(0xFFFFDFC4),
+                      ),
+                    ),
+                    child: const Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(
+                          Icons.lock_outline_rounded,
+                          color: DojoPartnerTheme.primaryOrange,
+                        ),
+                        SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            'Your documents contain sensitive personal '
+                            'information. Upload only your own documents. '
+                            'Access must be restricted by Firebase rules.',
+                            style: TextStyle(
+                              fontSize: 12,
+                              height: 1.5,
+                              color: DojoPartnerTheme.textPrimary,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
@@ -458,9 +545,10 @@ class _KycDocumentsScreenState extends State<KycDocumentsScreen> {
                       child: _isUploading
                           ? const Text('Uploading Documents...')
                           : const Text(
-                              'Upload & Continue to Review',
+                              'Upload & Continue',
                               style: TextStyle(
                                 fontWeight: FontWeight.w800,
+                                fontSize: 15,
                               ),
                             ),
                     ),
