@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 
 import '../../theme.dart';
 import '../auth/mobile_login_screen.dart';
-import '../onboarding/bank_details_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -20,7 +19,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   String _walkerId = 'DOJO-W-00124';
   String _zoneName = 'Not set';
   String _service = 'Dog Walking';
-  String _rating = '4.9 / 5.0';
+  String _rating = 'Not rated';
   String _phone = '';
 
   @override
@@ -38,7 +37,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
       setState(() {
         _loading = false;
       });
-
       return;
     }
 
@@ -66,7 +64,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           }
         }
 
-        String ratingText = '4.9 / 5.0';
+        String ratingText = 'Not rated';
 
         if (rating is num) {
           ratingText = '${rating.toStringAsFixed(1)} / 5.0';
@@ -204,16 +202,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       _showComingSoon(
                         context,
                         'Documents & KYC',
-                        'Your submitted KYC documents and verification status will appear here.',
+                        'Your submitted KYC documents and '
+                            'verification status will appear here.',
                       );
                     },
-                  ),
-
-                  _ActionItem(
-                    icon: Icons.account_balance_outlined,
-                    title: 'Bank Details',
-                    subtitle: 'Account for receiving earnings',
-                    onTap: _openBankDetails,
                   ),
 
                   const SizedBox(height: 24),
@@ -258,7 +250,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       _showComingSoon(
                         context,
                         'Notifications',
-                        'Notification preferences will be available here.',
+                        'Notification preferences will be '
+                            'available here.',
                       );
                     },
                   ),
@@ -429,19 +422,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Future<void> _openBankDetails() async {
-    await Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => const BankDetailsScreen(),
-      ),
-    );
-
-    if (!mounted) return;
-
-    await _loadProfile();
-  }
-
   void _showComingSoon(
     BuildContext context,
     String title,
@@ -480,7 +460,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
       children: const [
         SizedBox(height: 12),
         Text(
-          'DOJO Partner helps verified walkers manage their work, walks, schedules and earnings.',
+          'DOJO Partner helps verified walkers manage their work, '
+          'walks, schedules and earnings.',
         ),
       ],
     );
@@ -510,7 +491,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
             TextButton(
               onPressed: () {
                 Navigator.pop(dialogContext);
-
                 _performLogout();
               },
               child: const Text(
