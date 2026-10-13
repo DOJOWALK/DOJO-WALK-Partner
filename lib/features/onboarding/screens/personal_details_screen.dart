@@ -2,7 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
-import '../../theme.dart';
+import '../../../theme.dart';
 import 'live_selfie_screen.dart';
 
 class PersonalDetailsScreen extends StatefulWidget {
