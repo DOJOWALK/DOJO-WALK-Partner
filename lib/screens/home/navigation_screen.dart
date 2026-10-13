@@ -2,9 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
 import '../../theme.dart';
-import 'live_walk_screen.dart';
-
-class NavigationScreen extends StatefulWidget {
+import '../../features/live_walk/screens/live_walk_screen.dart';
   const NavigationScreen({
     super.key,
     required this.time,
