@@ -6,7 +6,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
-import '../../theme.dart';
+import '../../../theme.dart';
 import 'current_address_screen.dart';
 
 class KycDocumentsScreen extends StatefulWidget {
