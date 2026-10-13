@@ -3,9 +3,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../../../theme.dart';
-import '../home/partner_home_screen.dart';
-import '../onboarding/screens/work_location_screen.dart';
-import '../onboarding/screens/application_submitted_screen.dart';
+import 'partner_home_screen.dart';
+import 'work_location_screen.dart';
+import 'application_submitted_screen.dart';
 
 class AccountCheckScreen extends StatefulWidget {
   const AccountCheckScreen({
