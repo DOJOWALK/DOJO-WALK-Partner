@@ -1,16 +1,30 @@
-
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- Location permissions for DOJO Partner live walk tracking -->
-    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <!-- Location permissions -->
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
 
-    <!-- Camera permission for Partner selfie capture -->
+    <!-- Background location: Android 10+ -->
+    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
+
+    <!-- Foreground service for ongoing walk tracking -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+
+    <!-- Location foreground service: Android 14+ -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
+
+    <!-- Notifications: Android 13+ -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <!-- Camera for selfie and KYC -->
     <uses-permission android:name="android.permission.CAMERA" />
 
+    <!-- Internet access -->
+    <uses-permission android:name="android.permission.INTERNET" />
+
     <application
-        android:label="DOJO WALK Partner"
         android:name="${applicationName}"
+        android:label="DOJO WALK Partner"
         android:icon="@mipmap/ic_launcher">
 
         <!-- Google Maps API Key -->
@@ -39,7 +53,7 @@
 
         </activity>
 
-        <!-- Flutter embedding version -->
+        <!-- Flutter embedding -->
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
