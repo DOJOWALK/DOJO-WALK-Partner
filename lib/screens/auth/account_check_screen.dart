@@ -1,11 +1,11 @@
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../../theme.dart';
-import '../home/partner_home_screen.dart';
 import '../../features/onboarding/screens/work_location_screen.dart';
+import '../../features/onboarding/screens/application_submitted_screen.dart';
+import '../home/partner_home_screen.dart';
 
 class AccountCheckScreen extends StatefulWidget {
   const AccountCheckScreen({
@@ -16,13 +16,15 @@ class AccountCheckScreen extends StatefulWidget {
   final String phoneNumber;
 
   @override
-  State<AccountCheckScreen> createState() => _AccountCheckScreenState();
+  State<AccountCheckScreen> createState() =>
+      _AccountCheckScreenState();
 }
 
 class _AccountCheckScreenState extends State<AccountCheckScreen> {
-  String _message = 'Checking your DOJO Partner account...';
   bool _isChecking = true;
   bool _hasError = false;
+
+  String _message = 'Checking your DOJO Partner account...';
 
   @override
   void initState() {
@@ -57,28 +59,31 @@ class _AccountCheckScreenState extends State<AccountCheckScreen> {
 
       if (!mounted) return;
 
-      // New Partner: begin with State, City, Area and Zones.
+      // New Partner: no application document exists yet.
       if (!walkerDoc.exists) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (_) => const WorkZoneScreen(),
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute<void>(
+            builder: (_) => const WorkLocationScreen(),
           ),
+          (route) => false,
         );
         return;
       }
 
-      final data = walkerDoc.data() ?? {};
+      final data = walkerDoc.data() ?? <String, dynamic>{};
 
-      final status = data['status']?.toString() ?? 'pending';
-      final isActive = data['isActive'] == true;
+      final status = (data['status'] ?? 'pending')
+          .toString()
+          .trim()
+          .toLowerCase();
+
       final isApproved = data['isApproved'] == true;
+      final isActive = data['isActive'] == true;
 
-      // Only approved and active Partners can enter Home.
-      if (status == 'approved' && isActive && isApproved) {
-        Navigator.pushAndRemoveUntil(
-          context,
-          MaterialPageRoute(
+      // Only approved and active Partners can enter Partner Home.
+      if (isApproved && isActive && status == 'approved') {
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute<void>(
             builder: (_) => const PartnerHomeScreen(),
           ),
           (route) => false,
@@ -86,32 +91,33 @@ class _AccountCheckScreenState extends State<AccountCheckScreen> {
         return;
       }
 
-      if (!mounted) return;
+      // All known non-active application states remain outside Home.
+      const applicationStatuses = <String>{
+        'pending',
+        'under_review',
+        'correction_required',
+        'approved',
+        'rejected',
+        'suspended',
+        'left',
+      };
 
-      switch (status) {
-        case 'pending':
-        case 'under_review':
-          _message = 'Your application is under review.';
-          break;
-        case 'correction_required':
-          _message = 'Some information needs correction.';
-          break;
-        case 'suspended':
-          _message = 'Your DOJO Partner account is suspended.';
-          break;
-        case 'rejected':
-          _message = 'Your Partner application was not approved.';
-          break;
-        case 'left':
-          _message = 'This Partner account is inactive.';
-          break;
-        default:
-          _message = 'Your account is being checked by DOJO.';
+      if (applicationStatuses.contains(status)) {
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute<void>(
+            builder: (_) => const ApplicationSubmittedScreen(),
+          ),
+          (route) => false,
+        );
+        return;
       }
 
+      // Unknown status: block entry and show a support message.
       setState(() {
         _isChecking = false;
         _hasError = false;
+        _message =
+            'Your account status needs to be checked by DOJO Support.';
       });
     } on FirebaseAuthException catch (e) {
       if (!mounted) return;
@@ -119,7 +125,8 @@ class _AccountCheckScreenState extends State<AccountCheckScreen> {
       setState(() {
         _isChecking = false;
         _hasError = true;
-        _message = e.message ?? 'Unable to verify your login session.';
+        _message =
+            e.message ?? 'Unable to verify your login session.';
       });
     } on FirebaseException catch (e) {
       if (!mounted) return;
@@ -142,10 +149,46 @@ class _AccountCheckScreenState extends State<AccountCheckScreen> {
     }
   }
 
+  Future<void> _logout() async {
+    try {
+      await FirebaseAuth.instance.signOut();
+
+      if (!mounted) return;
+
+      Navigator.of(context).popUntil((route) => route.isFirst);
+    } catch (_) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Unable to log out. Please try again.'),
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        title: const Text(
+          'Account Check',
+          style: TextStyle(
+            color: DojoPartnerTheme.textPrimary,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        actions: [
+          IconButton(
+            tooltip: 'Logout',
+            onPressed: _logout,
+            icon: const Icon(Icons.logout_rounded),
+          ),
+        ],
+      ),
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
@@ -157,53 +200,41 @@ class _AccountCheckScreenState extends State<AccountCheckScreen> {
                 ),
                 child: Center(
                   child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 380),
+                    constraints: const BoxConstraints(
+                      maxWidth: 380,
+                    ),
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        Column(
-                          children: [
-                            Container(
-                              width: 70,
-                              height: 70,
-                              decoration: BoxDecoration(
-                                color: DojoPartnerTheme.primaryOrange,
-                                borderRadius: BorderRadius.circular(22),
-                              ),
-                              child: const Icon(
-                                Icons.pets_rounded,
-                                color: Colors.white,
-                                size: 38,
-                              ),
-                            ),
-                            const SizedBox(height: 16),
-                            const Text(
-                              'DOJO',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                color: DojoPartnerTheme.primaryOrange,
-                                fontSize: 36,
-                                fontWeight: FontWeight.w900,
-                                letterSpacing: 2,
-                              ),
-                            ),
-                            const SizedBox(height: 3),
-                            const Text(
-                              'PARTNER',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w800,
-                                letterSpacing: 4,
-                                color: DojoPartnerTheme.textPrimary,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 44),
                         Container(
-                          padding: const EdgeInsets.all(28),
+                          width: 76,
+                          height: 76,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: DojoPartnerTheme.primaryOrange,
+                            borderRadius: BorderRadius.circular(22),
+                          ),
+                          child: const Icon(
+                            Icons.pets_rounded,
+                            color: Colors.white,
+                            size: 42,
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        const Text(
+                          'DOJO PARTNER',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: DojoPartnerTheme.primaryOrange,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 3,
+                          ),
+                        ),
+                        const SizedBox(height: 32),
+                        Container(
+                          padding: const EdgeInsets.all(26),
                           decoration: BoxDecoration(
                             color: const Color(0xFFFAFAFA),
                             borderRadius: BorderRadius.circular(22),
@@ -223,28 +254,20 @@ class _AccountCheckScreenState extends State<AccountCheckScreen> {
                                   ),
                                 )
                               else
-                                Container(
-                                  width: 58,
-                                  height: 58,
-                                  decoration: const BoxDecoration(
-                                    color: Color(0xFFFFF3E8),
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: Icon(
-                                    _hasError
-                                        ? Icons.error_outline_rounded
-                                        : Icons.hourglass_top_rounded,
-                                    size: 30,
-                                    color: DojoPartnerTheme.primaryOrange,
-                                  ),
+                                Icon(
+                                  _hasError
+                                      ? Icons.error_outline_rounded
+                                      : Icons.info_outline_rounded,
+                                  color: DojoPartnerTheme.primaryOrange,
+                                  size: 46,
                                 ),
-                              const SizedBox(height: 24),
+                              const SizedBox(height: 22),
                               Text(
                                 _isChecking
                                     ? 'Verifying your account'
                                     : _hasError
                                         ? 'Unable to check account'
-                                        : 'Application status',
+                                        : 'Account status',
                                 textAlign: TextAlign.center,
                                 style: const TextStyle(
                                   fontSize: 21,
@@ -257,22 +280,11 @@ class _AccountCheckScreenState extends State<AccountCheckScreen> {
                                 _message,
                                 textAlign: TextAlign.center,
                                 style: const TextStyle(
-                                  fontSize: 15,
+                                  fontSize: 14,
                                   height: 1.6,
                                   color: DojoPartnerTheme.textSecondary,
                                 ),
                               ),
-                              if (_isChecking) ...[
-                                const SizedBox(height: 12),
-                                const Text(
-                                  'Please wait a moment.',
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    color: DojoPartnerTheme.textSecondary,
-                                  ),
-                                ),
-                              ],
                               if (_hasError) ...[
                                 const SizedBox(height: 24),
                                 SizedBox(
@@ -285,15 +297,10 @@ class _AccountCheckScreenState extends State<AccountCheckScreen> {
                                           DojoPartnerTheme.primaryOrange,
                                       foregroundColor: Colors.white,
                                       elevation: 0,
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius:
-                                            BorderRadius.circular(13),
-                                      ),
                                     ),
                                     child: const Text(
                                       'Try Again',
                                       style: TextStyle(
-                                        fontSize: 15,
                                         fontWeight: FontWeight.w800,
                                       ),
                                     ),
@@ -301,24 +308,6 @@ class _AccountCheckScreenState extends State<AccountCheckScreen> {
                                 ),
                               ],
                             ],
-                          ),
-                        ),
-                        const SizedBox(height: 32),
-                        const Text(
-                          'Your partner journey starts here.',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: DojoPartnerTheme.textSecondary,
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        const Text(
-                          'Terms  •  Privacy  •  Help',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: DojoPartnerTheme.textSecondary,
                           ),
                         ),
                       ],
