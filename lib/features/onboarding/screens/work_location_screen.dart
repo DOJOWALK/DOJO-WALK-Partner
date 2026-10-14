@@ -22,11 +22,11 @@ class _WorkLocationScreenState extends State<WorkLocationScreen> {
 
   bool _isSaving = false;
 
-  CollectionReference<Map<String, dynamic>> get _zones =>
-      _firestore.collection('zones');
-
   Stream<QuerySnapshot<Map<String, dynamic>>> _locationsStream() {
-    return _zones.where('isActive', isEqualTo: true).snapshots();
+    return _firestore
+        .collection('zones')
+        .where('isActive', isEqualTo: true)
+        .snapshots();
   }
 
   String _field(
@@ -63,32 +63,80 @@ class _WorkLocationScreenState extends State<WorkLocationScreen> {
   Future<void> _continue(
     List<QueryDocumentSnapshot<Map<String, dynamic>>> docs,
   ) async {
+    if (_isSaving) return;
+
     if (_selectedCity == null || _selectedArea == null) {
       _showMessage('Please select your city and work area.');
       return;
     }
 
     if (_travelMode == null) {
-      _showMessage('Please select how you will travel to bookings.');
+      _showMessage(
+        'Please select how you will travel to bookings.',
+      );
       return;
     }
 
     final user = FirebaseAuth.instance.currentUser;
 
     if (user == null) {
-      _showMessage('Your login session expired. Please log in again.');
+      _showMessage(
+        'Your login session expired. Please log in again.',
+      );
       return;
     }
 
-    final areaExists = docs.any(
-      (doc) =>
-          _field(doc, 'city') == _selectedCity &&
-          _field(doc, 'area') == _selectedArea,
-    );
+    final matchingDocs = docs.where((doc) {
+      return _field(doc, 'city') == _selectedCity &&
+          _field(doc, 'area') == _selectedArea;
+    }).toList();
 
-    if (!areaExists) {
+    if (matchingDocs.isEmpty) {
       _showMessage(
         'This area is no longer available. Please select again.',
+      );
+      return;
+    }
+
+    // State and zone names are taken from active zone documents.
+    // No arbitrary state or zone is invented.
+    final states = matchingDocs
+        .map((doc) => _field(doc, 'state'))
+        .where((value) => value.isNotEmpty)
+        .toSet();
+
+    if (states.length != 1) {
+      _showMessage(
+        'This location needs a valid state in DOJO zone settings. '
+        'Please contact support.',
+      );
+      return;
+    }
+
+    final state = states.first;
+
+    final zoneNames = matchingDocs
+        .map((doc) {
+          final data = doc.data();
+
+          return (data['zoneName'] ??
+                  data['name'] ??
+                  data['title'])
+              ?.toString()
+              .trim() ??
+              '';
+        })
+        .where((value) => value.isNotEmpty)
+        .toSet()
+        .toList()
+      ..sort();
+
+    // Do not silently use the area as a zone name. Zone metadata
+    // must be configured correctly in Firestore.
+    if (zoneNames.isEmpty) {
+      _showMessage(
+        'No zone name is configured for this area. '
+        'Please contact DOJO support.',
       );
       return;
     }
@@ -96,26 +144,62 @@ class _WorkLocationScreenState extends State<WorkLocationScreen> {
     setState(() => _isSaving = true);
 
     try {
-      await _firestore.collection('walkers').doc(user.uid).set(
-        {
-          'userId': user.uid,
+      final walkerRef =
+          _firestore.collection('walkers').doc(user.uid);
+
+      final existing = await walkerRef.get();
+      final existingData = existing.data();
+
+      // A submitted application must not be restarted through
+      // the initial onboarding flow.
+      if (existingData?['applicationSubmitted'] == true) {
+        _showMessage(
+          'Your application has already been submitted.',
+        );
+        return;
+      }
+
+      // Do not create an incomplete walker document here.
+      // PersonalDetailsScreen will create it after collecting
+      // all required fields.
+      //
+      // If a draft already exists, update only fields permitted
+      // by the ordinary owner-update rule.
+      if (existing.exists) {
+        final status = existingData?['status']?.toString();
+
+        if (status != 'in_progress') {
+          _showMessage(
+            'Your application cannot be edited from this step.',
+          );
+          return;
+        }
+
+        await walkerRef.update({
           'city': _selectedCity,
+          'state': state,
           'area': _selectedArea,
+          'zoneName': zoneNames.first,
+          'zoneNames': zoneNames,
+          'zones': matchingDocs.map((doc) => doc.id).toList(),
           'travelMode': _travelMode,
-          'status': 'under_review',
-          'isActive': false,
-          'isApproved': false,
-          'verificationStatus': 'pending',
           'updatedAt': FieldValue.serverTimestamp(),
-        },
-        SetOptions(merge: true),
-      );
+        });
+      }
 
       if (!mounted) return;
 
       Navigator.of(context).pushReplacement(
         MaterialPageRoute<void>(
-          builder: (_) => const PersonalDetailsScreen(),
+          builder: (_) => PersonalDetailsScreen(
+            initialCity: _selectedCity,
+            initialState: state,
+            initialArea: _selectedArea,
+            initialZoneNames: zoneNames,
+            initialZoneIds:
+                matchingDocs.map((doc) => doc.id).toList(),
+            initialTravelMode: _travelMode,
+          ),
         ),
       );
     } on FirebaseException catch (e) {
@@ -124,12 +208,14 @@ class _WorkLocationScreenState extends State<WorkLocationScreen> {
       _showMessage(
         e.code == 'permission-denied'
             ? 'Firebase access denied. Please check Firestore Rules.'
-            : e.message ?? 'Unable to save your work location.',
+            : e.message ?? 'Unable to continue. Please try again.',
       );
-    } catch (_) {
-      if (!mounted) return;
+    } catch (e) {
+      debugPrint('Work location error: $e');
 
-      _showMessage('Something went wrong. Please try again.');
+      if (mounted) {
+        _showMessage('Something went wrong. Please try again.');
+      }
     } finally {
       if (mounted) {
         setState(() => _isSaving = false);
@@ -138,9 +224,16 @@ class _WorkLocationScreenState extends State<WorkLocationScreen> {
   }
 
   void _showMessage(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(message),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
   }
 
   Widget _sectionTitle(String title, String subtitle) {
@@ -252,9 +345,7 @@ class _WorkLocationScreenState extends State<WorkLocationScreen> {
       onTap: _isSaving
           ? null
           : () {
-              setState(() {
-                _travelMode = value;
-              });
+              setState(() => _travelMode = value);
             },
       child: Container(
         margin: const EdgeInsets.only(bottom: 10),
@@ -338,14 +429,16 @@ class _WorkLocationScreenState extends State<WorkLocationScreen> {
                 child: Padding(
                   padding: EdgeInsets.all(24),
                   child: Text(
-                    'Unable to load cities and areas. Please check your connection.',
+                    'Unable to load cities and areas. '
+                    'Please check your connection.',
                     textAlign: TextAlign.center,
                   ),
                 ),
               );
             }
 
-            if (snapshot.connectionState == ConnectionState.waiting) {
+            if (snapshot.connectionState ==
+                ConnectionState.waiting) {
               return const Center(
                 child: CircularProgressIndicator(
                   color: DojoPartnerTheme.primaryOrange,
@@ -360,7 +453,8 @@ class _WorkLocationScreenState extends State<WorkLocationScreen> {
                 child: Padding(
                   padding: EdgeInsets.all(24),
                   child: Text(
-                    'No active locations are available yet. Please contact DOJO support.',
+                    'No active locations are available yet. '
+                    'Please contact DOJO support.',
                     textAlign: TextAlign.center,
                   ),
                 ),
@@ -375,7 +469,6 @@ class _WorkLocationScreenState extends State<WorkLocationScreen> {
               city: _selectedCity,
             );
 
-            // Clear selections if location data changes.
             if (_selectedCity != null &&
                 !cities.contains(_selectedCity)) {
               _selectedCity = null;
@@ -390,7 +483,8 @@ class _WorkLocationScreenState extends State<WorkLocationScreen> {
                 Expanded(
                   child: Center(
                     child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 480),
+                      constraints:
+                          const BoxConstraints(maxWidth: 480),
                       child: ListView(
                         padding: const EdgeInsets.fromLTRB(
                           24,
@@ -404,8 +498,10 @@ class _WorkLocationScreenState extends State<WorkLocationScreen> {
                               width: 58,
                               height: 58,
                               decoration: BoxDecoration(
-                                color: DojoPartnerTheme.primaryOrange,
-                                borderRadius: BorderRadius.circular(18),
+                                color:
+                                    DojoPartnerTheme.primaryOrange,
+                                borderRadius:
+                                    BorderRadius.circular(18),
                               ),
                               child: const Icon(
                                 Icons.pets_rounded,
@@ -422,13 +518,15 @@ class _WorkLocationScreenState extends State<WorkLocationScreen> {
                               fontSize: 13,
                               fontWeight: FontWeight.w900,
                               letterSpacing: 3,
-                              color: DojoPartnerTheme.primaryOrange,
+                              color:
+                                  DojoPartnerTheme.primaryOrange,
                             ),
                           ),
                           const SizedBox(height: 24),
                           _sectionTitle(
                             'Where would you like to work?',
-                            'Choose one city, one area and your preferred travel mode.',
+                            'Choose one city, one area and your '
+                                'preferred travel mode.',
                           ),
                           const SizedBox(height: 24),
                           _dropdown(
@@ -453,15 +551,16 @@ class _WorkLocationScreenState extends State<WorkLocationScreen> {
                             items: areas,
                             enabled: _selectedCity != null,
                             onChanged: (value) {
-                              setState(() {
-                                _selectedArea = value;
-                              });
+                              setState(
+                                () => _selectedArea = value,
+                              );
                             },
                           ),
                           const SizedBox(height: 28),
                           _sectionTitle(
                             'How will you travel?',
-                            'Choose your main way to reach customer bookings.',
+                            'Choose your main way to reach '
+                                'customer bookings.',
                           ),
                           const SizedBox(height: 14),
                           _travelModeCard(
@@ -473,19 +572,22 @@ class _WorkLocationScreenState extends State<WorkLocationScreen> {
                           _travelModeCard(
                             value: 'bicycle',
                             title: 'Bicycle',
-                            subtitle: 'I will travel by bicycle.',
+                            subtitle:
+                                'I will travel by bicycle.',
                             icon: Icons.pedal_bike_rounded,
                           ),
                           _travelModeCard(
                             value: 'scooter',
                             title: 'Scooter',
-                            subtitle: 'I will travel by scooter.',
+                            subtitle:
+                                'I will travel by scooter.',
                             icon: Icons.two_wheeler_rounded,
                           ),
                           _travelModeCard(
                             value: 'motorcycle',
                             title: 'Motorcycle / Bike',
-                            subtitle: 'I will travel by motorcycle.',
+                            subtitle:
+                                'I will travel by motorcycle.',
                             icon: Icons.motorcycle_rounded,
                           ),
                           const SizedBox(height: 8),
@@ -493,14 +595,18 @@ class _WorkLocationScreenState extends State<WorkLocationScreen> {
                             padding: const EdgeInsets.all(14),
                             decoration: BoxDecoration(
                               color: const Color(0xFFFFF5EC),
-                              borderRadius: BorderRadius.circular(12),
+                              borderRadius:
+                                  BorderRadius.circular(12),
                             ),
                             child: const Text(
-                              'Note: Travel mode describes how you reach the customer. The dog walk itself is conducted on foot.',
+                              'Note: Travel mode describes how you '
+                              'reach the customer. The dog walk '
+                              'itself is conducted on foot.',
                               style: TextStyle(
                                 fontSize: 12,
                                 height: 1.5,
-                                color: DojoPartnerTheme.textSecondary,
+                                color:
+                                    DojoPartnerTheme.textSecondary,
                               ),
                             ),
                           ),
@@ -511,7 +617,12 @@ class _WorkLocationScreenState extends State<WorkLocationScreen> {
                 ),
                 Container(
                   width: double.infinity,
-                  padding: const EdgeInsets.fromLTRB(24, 14, 24, 20),
+                  padding: const EdgeInsets.fromLTRB(
+                    24,
+                    14,
+                    24,
+                    20,
+                  ),
                   decoration: const BoxDecoration(
                     color: Colors.white,
                     border: Border(
@@ -522,7 +633,8 @@ class _WorkLocationScreenState extends State<WorkLocationScreen> {
                   ),
                   child: Center(
                     child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 480),
+                      constraints:
+                          const BoxConstraints(maxWidth: 480),
                       child: SizedBox(
                         width: double.infinity,
                         height: 54,
@@ -536,14 +648,16 @@ class _WorkLocationScreenState extends State<WorkLocationScreen> {
                             foregroundColor: Colors.white,
                             elevation: 0,
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14),
+                              borderRadius:
+                                  BorderRadius.circular(14),
                             ),
                           ),
                           child: _isSaving
                               ? const SizedBox(
                                   width: 22,
                                   height: 22,
-                                  child: CircularProgressIndicator(
+                                  child:
+                                      CircularProgressIndicator(
                                     strokeWidth: 2.5,
                                     color: Colors.white,
                                   ),
