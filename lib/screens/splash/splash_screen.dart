@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
-import '../../theme.dart';
 import '../auth/mobile_login_screen.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -41,44 +40,64 @@ class _SplashScreenState extends State<SplashScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+      body: SafeArea(
+        child: Stack(
+          alignment: Alignment.center,
           children: [
-            Container(
-              width: 92,
-              height: 92,
-              decoration: BoxDecoration(
-                color: DojoPartnerTheme.primaryOrange,
-                borderRadius: BorderRadius.circular(24),
+            // Splash PNG: इसमें ऐप का नाम पहले से मौजूद है।
+            Center(
+              child: Image.asset(
+                'assets/icon/DOJO WALK PARTNER SPLASH.png',
+                width: 280,
+                height: 220,
+                fit: BoxFit.contain,
+                errorBuilder: (context, error, stackTrace) {
+                  return const Icon(
+                    Icons.pets,
+                    size: 70,
+                    color: Colors.black,
+                  );
+                },
               ),
-              alignment: Alignment.center,
-              child: const Text(
-                'DOJO',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 22,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: 1.5,
+            ),
+
+            // छोटा काला लोडिंग इंडिकेटर, थोड़ा नीचे।
+            const Positioned(
+              bottom: 55,
+              child: SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    Colors.black,
+                  ),
                 ),
               ),
             ),
-            const SizedBox(height: 24),
-            const Text(
-              'DOJO Partner',
-              style: TextStyle(
-                color: DojoPartnerTheme.textPrimary,
-                fontSize: 25,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'Walk. Care. Earn.',
-              style: TextStyle(
-                color: DojoPartnerTheme.textSecondary,
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
+
+            // नीचे छोटा ब्रांडिंग टेक्स्ट।
+            const Positioned(
+              bottom: 14,
+              child: Text.rich(
+                TextSpan(
+                  style: TextStyle(
+                    fontSize: 9,
+                    color: Colors.black45,
+                    letterSpacing: 0.2,
+                  ),
+                  children: [
+                    TextSpan(text: 'Powered by '),
+                    TextSpan(
+                      text: 'DOJO WALK',
+                      style: TextStyle(
+                        color: Colors.black54,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ],
