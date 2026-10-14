@@ -96,6 +96,20 @@ class _ReviewSubmitScreenState extends State<ReviewSubmitScreen> {
       return 'Not provided';
     }
 
+    if (value is Timestamp) {
+      final date = value.toDate();
+
+      return '${date.day.toString().padLeft(2, '0')}/'
+          '${date.month.toString().padLeft(2, '0')}/'
+          '${date.year}';
+    }
+
+    if (value is DateTime) {
+      return '${value.day.toString().padLeft(2, '0')}/'
+          '${value.month.toString().padLeft(2, '0')}/'
+          '${value.year}';
+    }
+
     return value.toString().trim();
   }
 
@@ -127,9 +141,9 @@ class _ReviewSubmitScreenState extends State<ReviewSubmitScreen> {
   }
 
   String _documentStatus(String key) {
-    final path = _documentPath(key);
-
-    if (path.isEmpty) return 'not_submitted';
+    if (_documentPath(key).isEmpty) {
+      return 'not_submitted';
+    }
 
     final status = _nested([
       'kyc',
@@ -207,15 +221,13 @@ class _ReviewSubmitScreenState extends State<ReviewSubmitScreen> {
   }
 
   bool _hasCompleteAddress() {
-    final requiredFields = [
+    for (final field in [
       'houseNumber',
       'street',
       'city',
       'state',
       'pinCode',
-    ];
-
-    for (final field in requiredFields) {
+    ]) {
       if (_addressValue(field) == 'Not provided') {
         return false;
       }
@@ -247,12 +259,8 @@ class _ReviewSubmitScreenState extends State<ReviewSubmitScreen> {
       return;
     }
 
-    final navigator = Navigator.of(context);
-    final messenger = ScaffoldMessenger.of(context);
-
-    showDialog<void>(
+    await showDialog<void>(
       context: context,
-      barrierDismissible: false,
       builder: (dialogContext) {
         return Dialog(
           backgroundColor: Colors.white,
@@ -311,41 +319,26 @@ class _ReviewSubmitScreenState extends State<ReviewSubmitScreen> {
                         );
                       }
 
-                      if (snapshot.hasError ||
-                          !snapshot.hasData) {
-                        return Padding(
-                          padding: const EdgeInsets.all(24),
+                      if (snapshot.hasError || !snapshot.hasData) {
+                        return const Padding(
+                          padding: EdgeInsets.all(24),
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              const Icon(
+                              Icon(
                                 Icons.broken_image_outlined,
                                 size: 48,
                                 color: DojoPartnerTheme.textSecondary,
                               ),
-                              const SizedBox(height: 12),
-                              const Text(
-                                'Unable to load this photo.',
+                              SizedBox(height: 12),
+                              Text(
+                                'Unable to load this photo. Check '
+                                'Storage permissions and confirm the file exists.',
                                 textAlign: TextAlign.center,
                                 style: TextStyle(
-                                  fontWeight: FontWeight.w700,
+                                  fontSize: 13,
+                                  height: 1.5,
                                 ),
-                              ),
-                              const SizedBox(height: 8),
-                              const Text(
-                                'Check Firebase Storage permissions and confirm that the file exists.',
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  height: 1.4,
-                                  color: DojoPartnerTheme.textSecondary,
-                                ),
-                              ),
-                              const SizedBox(height: 12),
-                              TextButton(
-                                onPressed: () =>
-                                    Navigator.of(dialogContext).pop(),
-                                child: const Text('Close'),
                               ),
                             ],
                           ),
@@ -392,16 +385,6 @@ class _ReviewSubmitScreenState extends State<ReviewSubmitScreen> {
         );
       },
     );
-
-    // Keep local references intentionally available for callers.
-    // The photo dialog closes independently of the review screen.
-    if (!mounted) return;
-
-    // Avoid using getDownloadURL: this screen reads the private
-    // Storage object directly through its authenticated reference.
-    // These references are only used if later error handling is added.
-    assert(navigator.mounted);
-    assert(messenger.mounted);
   }
 
   Future<void> _submitApplication() async {
@@ -428,8 +411,21 @@ class _ReviewSubmitScreenState extends State<ReviewSubmitScreen> {
       return;
     }
 
+    if (data['applicationSubmitted'] == true) {
+      _showMessage('Your application has already been submitted.');
+      return;
+    }
+
+    if (data['status'] != 'in_progress') {
+      _showMessage(
+        'Only an application in progress can be submitted.',
+      );
+      return;
+    }
+
     if (_value('fullName') == 'Not provided' ||
-        _value('phone') == 'Not provided') {
+        _value('phone') == 'Not provided' ||
+        data['dateOfBirth'] is! Timestamp) {
       _showMessage(
         'Please complete your personal details first.',
       );
@@ -452,7 +448,8 @@ class _ReviewSubmitScreenState extends State<ReviewSubmitScreen> {
 
     if (!_hasRequiredDocuments()) {
       _showMessage(
-        'Please upload your selfie, Aadhaar front, Aadhaar back and PAN card first.',
+        'Please upload your selfie, Aadhaar front, '
+        'Aadhaar back and PAN card first.',
       );
       return;
     }
@@ -464,8 +461,7 @@ class _ReviewSubmitScreenState extends State<ReviewSubmitScreen> {
           .collection('walkers')
           .doc(user.uid);
 
-      // Re-read the document to avoid submitting based solely
-      // on stale data displayed by this screen.
+      // Re-read before submission to avoid using stale data.
       final latestSnapshot = await walkerRef.get();
 
       if (!latestSnapshot.exists) {
@@ -474,13 +470,39 @@ class _ReviewSubmitScreenState extends State<ReviewSubmitScreen> {
 
       final latestData = latestSnapshot.data() ?? {};
 
-      final selfie = latestData['kyc'] is Map
-          ? (latestData['kyc'] as Map)['selfie']
-          : null;
+      if (latestData['userId'] != user.uid) {
+        throw Exception('Partner profile does not match your account.');
+      }
 
-      final documents = latestData['kyc'] is Map
-          ? (latestData['kyc'] as Map)['documents']
-          : null;
+      if (latestData['applicationSubmitted'] == true) {
+        throw Exception('Your application has already been submitted.');
+      }
+
+      if (latestData['status'] != 'in_progress') {
+        throw Exception(
+          'Your application is not in the correct status for submission.',
+        );
+      }
+
+      // Preserve the current verification fields. The final
+      // submission rule only allows the listed submission keys
+      // to change.
+      if (latestData['isActive'] != false ||
+          latestData['isApproved'] != false ||
+          latestData['verificationStatus'] != 'pending') {
+        throw Exception(
+          'Application status has changed. Please contact DOJO support.',
+        );
+      }
+
+      dynamic latestKyc = latestData['kyc'];
+
+      if (latestKyc is! Map) {
+        throw Exception('KYC information is missing.');
+      }
+
+      final selfie = latestKyc['selfie'];
+      final documents = latestKyc['documents'];
 
       bool hasPath(dynamic record) {
         return record is Map &&
@@ -494,16 +516,15 @@ class _ReviewSubmitScreenState extends State<ReviewSubmitScreen> {
           !hasPath(documents['aadhaar_back']) ||
           !hasPath(documents['pan_card'])) {
         throw Exception(
-          'One or more required KYC photos are missing. Please return and upload them again.',
+          'One or more required KYC photos are missing. '
+          'Please return and upload them again.',
         );
       }
 
       final latestAddress = latestData['currentAddress'];
 
       if (latestAddress is! Map) {
-        throw Exception(
-          'Current residential address is missing.',
-        );
+        throw Exception('Current residential address is missing.');
       }
 
       for (final field in [
@@ -527,27 +548,26 @@ class _ReviewSubmitScreenState extends State<ReviewSubmitScreen> {
 
       final hasZones =
           (zones is List &&
-              zones.any((e) => e.toString().trim().isNotEmpty)) ||
-          (legacyZone is String && legacyZone.trim().isNotEmpty);
+              zones.any(
+                (e) => e.toString().trim().isNotEmpty,
+              )) ||
+          (legacyZone is String &&
+              legacyZone.trim().isNotEmpty);
 
       if (!hasZones) {
-        throw Exception(
-          'Please select at least one work zone.',
-        );
+        throw Exception('Please select at least one work zone.');
       }
 
-      await walkerRef.set(
-        {
-          'userId': user.uid,
-          'status': 'under_review',
-          'isActive': false,
-          'isApproved': false,
-          'verificationStatus': 'pending',
-          'submittedAt': FieldValue.serverTimestamp(),
-          'updatedAt': FieldValue.serverTimestamp(),
-        },
-        SetOptions(merge: true),
-      );
+      // IMPORTANT:
+      // Only fields allowed by the final-submission Firestore
+      // rule are changed here.
+      await walkerRef.update({
+        'status': 'under_review',
+        'applicationSubmitted': true,
+        'submittedAt': FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
+        'onboardingStep': 'submitted',
+      });
 
       if (!mounted) return;
 
@@ -559,15 +579,13 @@ class _ReviewSubmitScreenState extends State<ReviewSubmitScreen> {
         (route) => false,
       );
     } on FirebaseException catch (e) {
-      debugPrint(
-        'Submit application Firebase error: ${e.code}',
-      );
+      debugPrint('Submit application Firebase error: ${e.code}');
 
       if (!mounted) return;
 
       _showMessage(
         e.code == 'permission-denied'
-            ? 'Submission denied. Please check Firestore rules.'
+            ? 'Submission denied. Please check Firestore Rules.'
             : e.code == 'network-request-failed'
                 ? 'Network error. Please check your connection.'
                 : e.message ?? 'Submission failed. Please try again.',
@@ -851,7 +869,6 @@ class _ReviewSubmitScreenState extends State<ReviewSubmitScreen> {
                     ),
                   ),
                   const SizedBox(height: 24),
-
                   _section(
                     title: 'Personal Details',
                     icon: Icons.person_outline_rounded,
@@ -863,7 +880,6 @@ class _ReviewSubmitScreenState extends State<ReviewSubmitScreen> {
                       _row('Gender', _value('gender')),
                     ],
                   ),
-
                   _section(
                     title: 'Work Location',
                     icon: Icons.location_on_outlined,
@@ -877,9 +893,9 @@ class _ReviewSubmitScreenState extends State<ReviewSubmitScreen> {
                             ? 'Not provided'
                             : zones.join(', '),
                       ),
+                      _row('Travel Mode', _value('travelMode')),
                     ],
                   ),
-
                   _section(
                     title: 'Current Residential Address',
                     icon: Icons.home_work_outlined,
@@ -896,21 +912,11 @@ class _ReviewSubmitScreenState extends State<ReviewSubmitScreen> {
                         'Landmark',
                         _addressValue('landmark'),
                       ),
-                      _row(
-                        'City',
-                        _addressValue('city'),
-                      ),
-                      _row(
-                        'State',
-                        _addressValue('state'),
-                      ),
-                      _row(
-                        'PIN Code',
-                        _addressValue('pinCode'),
-                      ),
+                      _row('City', _addressValue('city')),
+                      _row('State', _addressValue('state')),
+                      _row('PIN Code', _addressValue('pinCode')),
                     ],
                   ),
-
                   _section(
                     title: 'KYC Documents',
                     icon: Icons.verified_user_outlined,
@@ -937,7 +943,8 @@ class _ReviewSubmitScreenState extends State<ReviewSubmitScreen> {
                       ),
                       const SizedBox(height: 4),
                       const Text(
-                        'Pending means submitted for review, not verified. DOJO must complete verification before activation.',
+                        'Pending means submitted for review, not verified. '
+                        'DOJO must complete verification before activation.',
                         style: TextStyle(
                           fontSize: 12,
                           height: 1.5,
@@ -946,7 +953,6 @@ class _ReviewSubmitScreenState extends State<ReviewSubmitScreen> {
                       ),
                     ],
                   ),
-
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
@@ -966,7 +972,9 @@ class _ReviewSubmitScreenState extends State<ReviewSubmitScreen> {
                         SizedBox(width: 12),
                         Expanded(
                           child: Text(
-                            'Your application will be reviewed by DOJO. You cannot accept walks until your Partner account is approved and activated.',
+                            'Your application will be reviewed by DOJO. '
+                            'You cannot accept walks until your Partner '
+                            'account is approved and activated.',
                             style: TextStyle(
                               fontSize: 13,
                               height: 1.5,
@@ -977,9 +985,7 @@ class _ReviewSubmitScreenState extends State<ReviewSubmitScreen> {
                       ],
                     ),
                   ),
-
                   const SizedBox(height: 16),
-
                   InkWell(
                     borderRadius: BorderRadius.circular(12),
                     onTap: _submitting
@@ -1018,7 +1024,8 @@ class _ReviewSubmitScreenState extends State<ReviewSubmitScreen> {
                                 right: 4,
                               ),
                               child: Text(
-                                'I confirm that my information is correct and agree to DOJO reviewing my Partner application.',
+                                'I confirm that my information is correct '
+                                'and agree to DOJO reviewing my Partner application.',
                                 style: TextStyle(
                                   fontSize: 13,
                                   height: 1.5,
@@ -1036,7 +1043,6 @@ class _ReviewSubmitScreenState extends State<ReviewSubmitScreen> {
             ),
           ),
         ),
-
         Container(
           width: double.infinity,
           padding: const EdgeInsets.fromLTRB(20, 14, 20, 18),
@@ -1201,7 +1207,8 @@ class ApplicationSubmittedScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 24),
                   const Text(
-                    'DOJO will review your details. You can accept walks only after your Partner account is approved and activated.',
+                    'DOJO will review your details. You can accept walks '
+                    'only after your Partner account is approved and activated.',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 13,
