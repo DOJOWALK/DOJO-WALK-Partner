@@ -3,287 +3,218 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../../../theme.dart';
-import 'live_selfie_screen.dart';
+import 'personal_details_screen.dart';
 
-class PersonalDetailsScreen extends StatefulWidget {
-  const PersonalDetailsScreen({super.key});
+class WorkLocationScreen extends StatefulWidget {
+  const WorkLocationScreen({super.key});
 
   @override
-  State<PersonalDetailsScreen> createState() =>
-      _PersonalDetailsScreenState();
+  State<WorkLocationScreen> createState() =>
+      _WorkLocationScreenState();
 }
 
-class _PersonalDetailsScreenState
-    extends State<PersonalDetailsScreen> {
-  final _formKey = GlobalKey<FormState>();
+class _WorkLocationScreenState extends State<WorkLocationScreen> {
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  final _nameController = TextEditingController();
-  final _emailController = TextEditingController();
-  final _phoneController = TextEditingController();
+  String? _selectedCity;
+  String? _selectedArea;
+  String? _travelMode;
 
-  DateTime? _dateOfBirth;
-  String? _gender;
-
-  bool _isLoading = true;
   bool _isSaving = false;
 
-  static const int _minimumAge = 18;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadExistingDetails();
+  Stream<QuerySnapshot<Map<String, dynamic>>> _locationsStream() {
+    return _firestore
+        .collection('zones')
+        .where('isActive', isEqualTo: true)
+        .snapshots();
   }
 
-  Future<void> _loadExistingDetails() async {
-    final user = FirebaseAuth.instance.currentUser;
+  String _field(
+    QueryDocumentSnapshot<Map<String, dynamic>> doc,
+    String key,
+  ) {
+    return doc.data()[key]?.toString().trim() ?? '';
+  }
 
-    if (user == null) {
-      if (mounted) {
-        setState(() => _isLoading = false);
-        _showMessage('Please login again to continue.');
+  List<String> _uniqueValues(
+    List<QueryDocumentSnapshot<Map<String, dynamic>>> docs,
+    String field, {
+    String? city,
+  }) {
+    final values = <String>{};
+
+    for (final doc in docs) {
+      final data = doc.data();
+      final value = data[field]?.toString().trim() ?? '';
+
+      if (value.isEmpty) continue;
+
+      if (city != null &&
+          (data['city']?.toString().trim() ?? '') != city) {
+        continue;
       }
-      return;
+
+      values.add(value);
     }
 
-    _phoneController.text = user.phoneNumber ?? '';
-
-    try {
-      final snapshot = await FirebaseFirestore.instance
-          .collection('walkers')
-          .doc(user.uid)
-          .get();
-
-      if (!mounted) return;
-
-      if (snapshot.exists) {
-        final data = snapshot.data() ?? <String, dynamic>{};
-
-        _nameController.text =
-            data['fullName'] as String? ?? '';
-
-        _emailController.text =
-            data['email'] as String? ?? '';
-
-        // Keep the authenticated phone number as the source of truth.
-        _phoneController.text = user.phoneNumber ??
-            data['phone'] as String? ??
-            '';
-
-        final gender = data['gender'] as String?;
-
-        if (gender != null &&
-            ['male', 'female', 'other'].contains(gender)) {
-          _gender = gender;
-        }
-
-        final dob = data['dateOfBirth'];
-
-        if (dob is Timestamp) {
-          _dateOfBirth = dob.toDate();
-        } else if (dob is String) {
-          _dateOfBirth = DateTime.tryParse(dob);
-        }
-      }
-    } on FirebaseException catch (e) {
-      debugPrint(
-        'Unable to load Walker details: ${e.code}',
-      );
-
-      if (mounted) {
-        _showMessage(
-          e.code == 'permission-denied'
-              ? 'Unable to access your profile. Check Firestore Rules.'
-              : 'Could not load saved details. Please try again.',
-        );
-      }
-    } catch (e) {
-      debugPrint('Personal details loading error: $e');
-
-      if (mounted) {
-        _showMessage('Unable to load your saved details.');
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
-    }
+    return values.toList()..sort();
   }
 
-  @override
-  void dispose() {
-    _nameController.dispose();
-    _emailController.dispose();
-    _phoneController.dispose();
-    super.dispose();
-  }
-
-  int _calculateAge(DateTime dob) {
-    final now = DateTime.now();
-
-    int age = now.year - dob.year;
-
-    final birthdayNotReached = now.month < dob.month ||
-        (now.month == dob.month && now.day < dob.day);
-
-    if (birthdayNotReached) {
-      age--;
-    }
-
-    return age;
-  }
-
-  Future<void> _selectDate() async {
+  Future<void> _continue(
+    List<QueryDocumentSnapshot<Map<String, dynamic>>> docs,
+  ) async {
     if (_isSaving) return;
 
-    final now = DateTime.now();
-
-    final lastAllowedDate = DateTime(
-      now.year - _minimumAge,
-      now.month,
-      now.day,
-    );
-
-    DateTime initialDate = _dateOfBirth ?? lastAllowedDate;
-
-    if (initialDate.isAfter(lastAllowedDate)) {
-      initialDate = lastAllowedDate;
-    }
-
-    final selected = await showDatePicker(
-      context: context,
-      initialDate: initialDate,
-      firstDate: DateTime(1940),
-      lastDate: lastAllowedDate,
-      helpText: 'Select Date of Birth',
-      cancelText: 'Cancel',
-      confirmText: 'Confirm',
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: Theme.of(context).colorScheme.copyWith(
-                  primary: DojoPartnerTheme.primaryOrange,
-                ),
-          ),
-          child: child!,
-        );
-      },
-    );
-
-    if (selected != null && mounted) {
-      setState(() => _dateOfBirth = selected);
-    }
-  }
-
-  Future<void> _continue() async {
-    if (_isLoading || _isSaving) return;
-
-    FocusScope.of(context).unfocus();
-
-    if (!_formKey.currentState!.validate()) {
+    if (_selectedCity == null || _selectedArea == null) {
+      _showMessage('Please select your city and work area.');
       return;
     }
 
-    final dob = _dateOfBirth;
-
-    if (dob == null) {
-      _showMessage('Please select your date of birth.');
-      return;
-    }
-
-    if (_calculateAge(dob) < _minimumAge) {
-      _showMessage('You must be at least 18 years old.');
+    if (_travelMode == null) {
+      _showMessage(
+        'Please select how you will travel to bookings.',
+      );
       return;
     }
 
     final user = FirebaseAuth.instance.currentUser;
 
     if (user == null) {
-      _showMessage('Your session expired. Please login again.');
+      _showMessage(
+        'Your login session expired. Please log in again.',
+      );
+      return;
+    }
+
+    final matchingDocs = docs.where((doc) {
+      return _field(doc, 'city') == _selectedCity &&
+          _field(doc, 'area') == _selectedArea;
+    }).toList();
+
+    if (matchingDocs.isEmpty) {
+      _showMessage(
+        'This area is no longer available. Please select again.',
+      );
+      return;
+    }
+
+    // State and zone names are taken from active zone documents.
+    // No arbitrary state or zone is invented.
+    final states = matchingDocs
+        .map((doc) => _field(doc, 'state'))
+        .where((value) => value.isNotEmpty)
+        .toSet();
+
+    if (states.length != 1) {
+      _showMessage(
+        'This location needs a valid state in DOJO zone settings. '
+        'Please contact support.',
+      );
+      return;
+    }
+
+    final state = states.first;
+
+    final zoneNames = matchingDocs
+        .map((doc) {
+          final data = doc.data();
+
+          return (data['zoneName'] ??
+                  data['name'] ??
+                  data['title'])
+              ?.toString()
+              .trim() ??
+              '';
+        })
+        .where((value) => value.isNotEmpty)
+        .toSet()
+        .toList()
+      ..sort();
+
+    // Do not silently use the area as a zone name. Zone metadata
+    // must be configured correctly in Firestore.
+    if (zoneNames.isEmpty) {
+      _showMessage(
+        'No zone name is configured for this area. '
+        'Please contact DOJO support.',
+      );
       return;
     }
 
     setState(() => _isSaving = true);
 
     try {
-      final walkerRef = FirebaseFirestore.instance
-          .collection('walkers')
-          .doc(user.uid);
+      final walkerRef =
+          _firestore.collection('walkers').doc(user.uid);
 
-      final snapshot = await walkerRef.get();
+      final existing = await walkerRef.get();
+      final existingData = existing.data();
 
-      final data = <String, dynamic>{
-        'userId': user.uid,
-        'fullName': _nameController.text.trim(),
-        'phone': user.phoneNumber ?? '',
-        'dateOfBirth': Timestamp.fromDate(dob),
-        'updatedAt': FieldValue.serverTimestamp(),
-      };
-
-      final email = _emailController.text.trim();
-
-      if (email.isNotEmpty) {
-        data['email'] = email;
-      } else {
-        data['email'] = FieldValue.delete();
+      // A submitted application must not be restarted through
+      // the initial onboarding flow.
+      if (existingData?['applicationSubmitted'] == true) {
+        _showMessage(
+          'Your application has already been submitted.',
+        );
+        return;
       }
 
-      if (_gender != null) {
-        data['gender'] = _gender!;
-      } else {
-        data['gender'] = FieldValue.delete();
-      }
+      // Do not create an incomplete walker document here.
+      // PersonalDetailsScreen will create it after collecting
+      // all required fields.
+      //
+      // If a draft already exists, update only fields permitted
+      // by the ordinary owner-update rule.
+      if (existing.exists) {
+        final status = existingData?['status']?.toString();
 
-      // Initialize application fields only for a new document.
-      // Existing approval status will not be overwritten.
-      if (!snapshot.exists) {
-        data.addAll({
-          'status': 'under_review',
-          'isActive': false,
-          'isApproved': false,
-          'verificationStatus': 'pending',
-          'createdAt': FieldValue.serverTimestamp(),
+        if (status != 'in_progress') {
+          _showMessage(
+            'Your application cannot be edited from this step.',
+          );
+          return;
+        }
+
+        await walkerRef.update({
+          'city': _selectedCity,
+          'state': state,
+          'area': _selectedArea,
+          'zoneName': zoneNames.first,
+          'zoneNames': zoneNames,
+          'zones': matchingDocs.map((doc) => doc.id).toList(),
+          'travelMode': _travelMode,
+          'updatedAt': FieldValue.serverTimestamp(),
         });
       }
 
-      await walkerRef.set(
-        data,
-        SetOptions(merge: true),
-      );
-
       if (!mounted) return;
 
-      Navigator.push(
-        context,
+      Navigator.of(context).pushReplacement(
         MaterialPageRoute<void>(
-          builder: (_) => const LiveSelfieScreen(),
+          builder: (_) => PersonalDetailsScreen(
+            initialCity: _selectedCity,
+            initialState: state,
+            initialArea: _selectedArea,
+            initialZoneNames: zoneNames,
+            initialZoneIds:
+                matchingDocs.map((doc) => doc.id).toList(),
+            initialTravelMode: _travelMode,
+          ),
         ),
       );
     } on FirebaseException catch (e) {
       if (!mounted) return;
 
-      debugPrint(
-        'Personal details save error: ${e.code}',
+      _showMessage(
+        e.code == 'permission-denied'
+            ? 'Firebase access denied. Please check Firestore Rules.'
+            : e.message ?? 'Unable to continue. Please try again.',
       );
-
-      final message = switch (e.code) {
-        'permission-denied' =>
-          'Permission denied. Please check Firestore Rules.',
-        'unavailable' =>
-          'Network unavailable. Please try again.',
-        'unauthenticated' =>
-          'Your session expired. Please login again.',
-        _ => e.message ?? 'Unable to save personal details.',
-      };
-
-      _showMessage(message);
     } catch (e) {
-      debugPrint('Unexpected save error: $e');
+      debugPrint('Work location error: $e');
 
       if (mounted) {
-        _showMessage(
-          'Something went wrong. Please try again.',
-        );
+        _showMessage('Something went wrong. Please try again.');
       }
     } finally {
       if (mounted) {
@@ -305,91 +236,22 @@ class _PersonalDetailsScreenState
       );
   }
 
-  InputDecoration _inputDecoration({
-    required String label,
-    required IconData icon,
-    String? hint,
-  }) {
-    return InputDecoration(
-      labelText: label,
-      hintText: hint,
-      prefixIcon: Icon(icon),
-      filled: true,
-      fillColor: Colors.white,
-      contentPadding: const EdgeInsets.symmetric(
-        horizontal: 16,
-        vertical: 17,
-      ),
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(
-          color: Color(0xFFE5E5E5),
-        ),
-      ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(
-          color: Color(0xFFE5E5E5),
-        ),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(
-          color: DojoPartnerTheme.primaryOrange,
-          width: 1.5,
-        ),
-      ),
-      errorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(
-          color: Colors.red,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildHeader() {
+  Widget _sectionTitle(String title, String subtitle) {
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
-          width: 68,
-          height: 68,
-          decoration: BoxDecoration(
-            color: DojoPartnerTheme.primaryOrange
-                .withValues(alpha: 0.10),
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: const Icon(
-            Icons.person_outline_rounded,
-            size: 36,
-            color: DojoPartnerTheme.primaryOrange,
-          ),
-        ),
-        const SizedBox(height: 18),
-        const Text(
-          'DOJO PARTNER',
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w900,
-            letterSpacing: 2.5,
-            color: DojoPartnerTheme.primaryOrange,
-          ),
-        ),
-        const SizedBox(height: 10),
-        const Text(
-          'Personal Details',
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            fontSize: 25,
+        Text(
+          title,
+          style: const TextStyle(
+            fontSize: 21,
             fontWeight: FontWeight.w800,
             color: DojoPartnerTheme.textPrimary,
           ),
         ),
-        const SizedBox(height: 8),
-        const Text(
-          'Enter your details to continue your partner registration.',
-          textAlign: TextAlign.center,
-          style: TextStyle(
+        const SizedBox(height: 6),
+        Text(
+          subtitle,
+          style: const TextStyle(
             fontSize: 14,
             height: 1.5,
             color: DojoPartnerTheme.textSecondary,
@@ -399,39 +261,147 @@ class _PersonalDetailsScreenState
     );
   }
 
-  Widget _buildDateOfBirthField() {
-    final dob = _dateOfBirth;
+  Widget _dropdown({
+    required String label,
+    required String hint,
+    required String? value,
+    required List<String> items,
+    required ValueChanged<String?> onChanged,
+    bool enabled = true,
+  }) {
+    final safeValue =
+        value != null && items.contains(value) ? value : null;
 
-    final dateText = dob == null
-        ? 'Select your date of birth'
-        : '${dob.day.toString().padLeft(2, '0')}/'
-            '${dob.month.toString().padLeft(2, '0')}/'
-            '${dob.year}';
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w700,
+            color: DojoPartnerTheme.textPrimary,
+          ),
+        ),
+        const SizedBox(height: 8),
+        DropdownButtonFormField<String>(
+          initialValue: safeValue,
+          isExpanded: true,
+          decoration: InputDecoration(
+            hintText: hint,
+            filled: true,
+            fillColor: const Color(0xFFFAFAFA),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 15,
+              vertical: 16,
+            ),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(13),
+              borderSide: const BorderSide(
+                color: Color(0xFFE5E5E5),
+              ),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(13),
+              borderSide: const BorderSide(
+                color: Color(0xFFE5E5E5),
+              ),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(13),
+              borderSide: const BorderSide(
+                color: DojoPartnerTheme.primaryOrange,
+                width: 1.5,
+              ),
+            ),
+          ),
+          items: items
+              .map(
+                (item) => DropdownMenuItem<String>(
+                  value: item,
+                  child: Text(
+                    item,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              )
+              .toList(),
+          onChanged: enabled && !_isSaving ? onChanged : null,
+        ),
+      ],
+    );
+  }
+
+  Widget _travelModeCard({
+    required String value,
+    required String title,
+    required String subtitle,
+    required IconData icon,
+  }) {
+    final selected = _travelMode == value;
 
     return InkWell(
-      onTap: _isSaving ? null : _selectDate,
       borderRadius: BorderRadius.circular(14),
-      child: InputDecorator(
-        decoration: _inputDecoration(
-          label: 'Date of Birth *',
-          icon: Icons.calendar_month_outlined,
+      onTap: _isSaving
+          ? null
+          : () {
+              setState(() => _travelMode = value);
+            },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.all(15),
+        decoration: BoxDecoration(
+          color: selected
+              ? const Color(0xFFFFF5EC)
+              : Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: selected
+                ? DojoPartnerTheme.primaryOrange
+                : const Color(0xFFE5E5E5),
+            width: selected ? 1.6 : 1,
+          ),
         ),
         child: Row(
           children: [
+            Icon(
+              icon,
+              size: 28,
+              color: selected
+                  ? DojoPartnerTheme.primaryOrange
+                  : DojoPartnerTheme.textSecondary,
+            ),
+            const SizedBox(width: 14),
             Expanded(
-              child: Text(
-                dateText,
-                style: TextStyle(
-                  fontSize: 14,
-                  color: dob == null
-                      ? DojoPartnerTheme.textSecondary
-                      : DojoPartnerTheme.textPrimary,
-                ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w800,
+                      color: DojoPartnerTheme.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: DojoPartnerTheme.textSecondary,
+                    ),
+                  ),
+                ],
               ),
             ),
-            const Icon(
-              Icons.keyboard_arrow_down_rounded,
-              color: DojoPartnerTheme.textSecondary,
+            Icon(
+              selected
+                  ? Icons.radio_button_checked
+                  : Icons.radio_button_unchecked,
+              color: selected
+                  ? DojoPartnerTheme.primaryOrange
+                  : const Color(0xFFBDBDBD),
             ),
           ],
         ),
@@ -439,230 +409,274 @@ class _PersonalDetailsScreenState
     );
   }
 
-  Widget _buildGenderField() {
-    return DropdownButtonFormField<String>(
-      initialValue: _gender,
-      isExpanded: true,
-      decoration: _inputDecoration(
-        label: 'Gender (Optional)',
-        icon: Icons.wc_outlined,
-      ),
-      items: const [
-        DropdownMenuItem(
-          value: 'male',
-          child: Text('Male'),
-        ),
-        DropdownMenuItem(
-          value: 'female',
-          child: Text('Female'),
-        ),
-        DropdownMenuItem(
-          value: 'other',
-          child: Text('Other'),
-        ),
-      ],
-      onChanged: _isSaving
-          ? null
-          : (value) {
-              setState(() => _gender = value);
-            },
-    );
-  }
-
-  Widget _buildForm() {
-    return Form(
-      key: _formKey,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          TextFormField(
-            controller: _nameController,
-            enabled: !_isSaving,
-            textCapitalization: TextCapitalization.words,
-            textInputAction: TextInputAction.next,
-            autofillHints: const [AutofillHints.name],
-            decoration: _inputDecoration(
-              label: 'Full Name *',
-              icon: Icons.person_outline,
-              hint: 'Enter your full name',
-            ),
-            validator: (value) {
-              final name = value?.trim() ?? '';
-
-              if (name.isEmpty) {
-                return 'Full name is required.';
-              }
-
-              if (name.length < 3) {
-                return 'Enter at least 3 characters.';
-              }
-
-              if (name.length > 80) {
-                return 'Name cannot exceed 80 characters.';
-              }
-
-              return null;
-            },
-          ),
-          const SizedBox(height: 18),
-          TextFormField(
-            controller: _phoneController,
-            enabled: false,
-            decoration: _inputDecoration(
-              label: 'Verified Mobile Number',
-              icon: Icons.phone_outlined,
-            ),
-          ),
-          const SizedBox(height: 18),
-          _buildDateOfBirthField(),
-          const SizedBox(height: 18),
-          _buildGenderField(),
-          const SizedBox(height: 18),
-          TextFormField(
-            controller: _emailController,
-            enabled: !_isSaving,
-            keyboardType: TextInputType.emailAddress,
-            textInputAction: TextInputAction.done,
-            autofillHints: const [AutofillHints.email],
-            decoration: _inputDecoration(
-              label: 'Email (Optional)',
-              icon: Icons.email_outlined,
-              hint: 'example@email.com',
-            ),
-            validator: (value) {
-              final email = value?.trim() ?? '';
-
-              if (email.isEmpty) return null;
-
-              final validEmail = RegExp(
-                r'^[^@\s]+@[^@\s]+\.[^@\s]+$',
-              ).hasMatch(email);
-
-              if (!validEmail) {
-                return 'Enter a valid email address.';
-              }
-
-              return null;
-            },
-          ),
-          const SizedBox(height: 18),
-          Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: const Color(0xFFFFF5EB),
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(
-                color: DojoPartnerTheme.primaryOrange
-                    .withValues(alpha: 0.25),
-              ),
-            ),
-            child: const Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Icon(
-                  Icons.info_outline_rounded,
-                  color: DojoPartnerTheme.primaryOrange,
-                  size: 21,
-                ),
-                SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    'Use your correct personal information. '
-                    'Your details will be reviewed during partner verification.',
-                    style: TextStyle(
-                      fontSize: 12,
-                      height: 1.5,
-                      color: DojoPartnerTheme.textPrimary,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 28),
-          SizedBox(
-            height: 54,
-            child: ElevatedButton(
-              onPressed: _isSaving || _isLoading
-                  ? null
-                  : _continue,
-              style: ElevatedButton.styleFrom(
-                backgroundColor:
-                    DojoPartnerTheme.primaryOrange,
-                foregroundColor: Colors.white,
-                disabledBackgroundColor:
-                    DojoPartnerTheme.primaryOrange
-                        .withValues(alpha: 0.5),
-                elevation: 0,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
-                ),
-              ),
-              child: _isSaving
-                  ? const SizedBox(
-                      width: 23,
-                      height: 23,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2.5,
-                        color: Colors.white,
-                      ),
-                    )
-                  : const Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          'Save & Continue',
-                          style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                        SizedBox(width: 9),
-                        Icon(Icons.arrow_forward_rounded),
-                      ],
-                    ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFFAFAFA),
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text('Personal Details'),
+        title: const Text('Work Location'),
         centerTitle: true,
         backgroundColor: Colors.white,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
       ),
       body: SafeArea(
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 480),
-            child: _isLoading
-                ? const Center(
-                    child: CircularProgressIndicator(
-                      color: DojoPartnerTheme.primaryOrange,
-                    ),
-                  )
-                : ListView(
-                    padding: const EdgeInsets.fromLTRB(
-                      24,
-                      24,
-                      24,
-                      32,
-                    ),
-                    children: [
-                      _buildHeader(),
-                      const SizedBox(height: 30),
-                      _buildForm(),
-                    ],
+        child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+          stream: _locationsStream(),
+          builder: (context, snapshot) {
+            if (snapshot.hasError) {
+              return const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(24),
+                  child: Text(
+                    'Unable to load cities and areas. '
+                    'Please check your connection.',
+                    textAlign: TextAlign.center,
                   ),
-          ),
+                ),
+              );
+            }
+
+            if (snapshot.connectionState ==
+                ConnectionState.waiting) {
+              return const Center(
+                child: CircularProgressIndicator(
+                  color: DojoPartnerTheme.primaryOrange,
+                ),
+              );
+            }
+
+            final docs = snapshot.data?.docs ?? [];
+
+            if (docs.isEmpty) {
+              return const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(24),
+                  child: Text(
+                    'No active locations are available yet. '
+                    'Please contact DOJO support.',
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              );
+            }
+
+            final cities = _uniqueValues(docs, 'city');
+
+            final areas = _uniqueValues(
+              docs,
+              'area',
+              city: _selectedCity,
+            );
+
+            if (_selectedCity != null &&
+                !cities.contains(_selectedCity)) {
+              _selectedCity = null;
+              _selectedArea = null;
+            } else if (_selectedArea != null &&
+                !areas.contains(_selectedArea)) {
+              _selectedArea = null;
+            }
+
+            return Column(
+              children: [
+                Expanded(
+                  child: Center(
+                    child: ConstrainedBox(
+                      constraints:
+                          const BoxConstraints(maxWidth: 480),
+                      child: ListView(
+                        padding: const EdgeInsets.fromLTRB(
+                          24,
+                          18,
+                          24,
+                          24,
+                        ),
+                        children: [
+                          Center(
+                            child: Container(
+                              width: 58,
+                              height: 58,
+                              decoration: BoxDecoration(
+                                color:
+                                    DojoPartnerTheme.primaryOrange,
+                                borderRadius:
+                                    BorderRadius.circular(18),
+                              ),
+                              child: const Icon(
+                                Icons.pets_rounded,
+                                color: Colors.white,
+                                size: 32,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          const Text(
+                            'DOJO PARTNER',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: 3,
+                              color:
+                                  DojoPartnerTheme.primaryOrange,
+                            ),
+                          ),
+                          const SizedBox(height: 24),
+                          _sectionTitle(
+                            'Where would you like to work?',
+                            'Choose one city, one area and your '
+                                'preferred travel mode.',
+                          ),
+                          const SizedBox(height: 24),
+                          _dropdown(
+                            label: 'Select City',
+                            hint: 'Choose your city',
+                            value: _selectedCity,
+                            items: cities,
+                            onChanged: (value) {
+                              setState(() {
+                                _selectedCity = value;
+                                _selectedArea = null;
+                              });
+                            },
+                          ),
+                          const SizedBox(height: 20),
+                          _dropdown(
+                            label: 'Select One Area',
+                            hint: _selectedCity == null
+                                ? 'Select a city first'
+                                : 'Choose your work area',
+                            value: _selectedArea,
+                            items: areas,
+                            enabled: _selectedCity != null,
+                            onChanged: (value) {
+                              setState(
+                                () => _selectedArea = value,
+                              );
+                            },
+                          ),
+                          const SizedBox(height: 28),
+                          _sectionTitle(
+                            'How will you travel?',
+                            'Choose your main way to reach '
+                                'customer bookings.',
+                          ),
+                          const SizedBox(height: 14),
+                          _travelModeCard(
+                            value: 'walking',
+                            title: 'Walking',
+                            subtitle: 'I will travel on foot.',
+                            icon: Icons.directions_walk_rounded,
+                          ),
+                          _travelModeCard(
+                            value: 'bicycle',
+                            title: 'Bicycle',
+                            subtitle:
+                                'I will travel by bicycle.',
+                            icon: Icons.pedal_bike_rounded,
+                          ),
+                          _travelModeCard(
+                            value: 'scooter',
+                            title: 'Scooter',
+                            subtitle:
+                                'I will travel by scooter.',
+                            icon: Icons.two_wheeler_rounded,
+                          ),
+                          _travelModeCard(
+                            value: 'motorcycle',
+                            title: 'Motorcycle / Bike',
+                            subtitle:
+                                'I will travel by motorcycle.',
+                            icon: Icons.motorcycle_rounded,
+                          ),
+                          const SizedBox(height: 8),
+                          Container(
+                            padding: const EdgeInsets.all(14),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFFF5EC),
+                              borderRadius:
+                                  BorderRadius.circular(12),
+                            ),
+                            child: const Text(
+                              'Note: Travel mode describes how you '
+                              'reach the customer. The dog walk '
+                              'itself is conducted on foot.',
+                              style: TextStyle(
+                                fontSize: 12,
+                                height: 1.5,
+                                color:
+                                    DojoPartnerTheme.textSecondary,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.fromLTRB(
+                    24,
+                    14,
+                    24,
+                    20,
+                  ),
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                    border: Border(
+                      top: BorderSide(
+                        color: Color(0xFFEEEEEE),
+                      ),
+                    ),
+                  ),
+                  child: Center(
+                    child: ConstrainedBox(
+                      constraints:
+                          const BoxConstraints(maxWidth: 480),
+                      child: SizedBox(
+                        width: double.infinity,
+                        height: 54,
+                        child: ElevatedButton(
+                          onPressed: _isSaving
+                              ? null
+                              : () => _continue(docs),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor:
+                                DojoPartnerTheme.primaryOrange,
+                            foregroundColor: Colors.white,
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(
+                              borderRadius:
+                                  BorderRadius.circular(14),
+                            ),
+                          ),
+                          child: _isSaving
+                              ? const SizedBox(
+                                  width: 22,
+                                  height: 22,
+                                  child:
+                                      CircularProgressIndicator(
+                                    strokeWidth: 2.5,
+                                    color: Colors.white,
+                                  ),
+                                )
+                              : const Text(
+                                  'Save Location & Continue',
+                                  style: TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
         ),
       ),
     );
