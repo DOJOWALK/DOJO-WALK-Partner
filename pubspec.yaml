@@ -43,7 +43,7 @@ dev_dependencies:
 flutter_launcher_icons:
   android: true
   ios: false
-  image_path: "assets/images/dojo_walk_partner_icon.png"
+  image_path: "assets/icon/DOJO WALK PARTNER APP ICON .png"
   min_sdk_android: 21
 
 flutter:
@@ -51,5 +51,5 @@ flutter:
 
   # Partner App Images
   assets:
-    - assets/images/dojo_walk_partner_icon.png
-    - assets/images/dojo_walk_partner_splash.png
+    - assets/icon/DOJO WALK PARTNER APP ICON .png
+    - assets/icon/DOJO WALK PARTNER SPLASH.png
