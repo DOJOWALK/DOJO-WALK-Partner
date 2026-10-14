@@ -39,12 +39,17 @@ dev_dependencies:
   flutter_lints: ^5.0.0
   flutter_launcher_icons: ^0.14.4
 
-# App launcher icon configuration
+# Android App Launcher Icon
 flutter_launcher_icons:
   android: true
   ios: false
-  image_path: "assets/icon/DOJO WALK PARTNER.png"
+  image_path: "assets/images/dojo_walk_partner_icon.png"
   min_sdk_android: 21
 
 flutter:
   uses-material-design: true
+
+  # Partner App Images
+  assets:
+    - assets/images/dojo_walk_partner_icon.png
+    - assets/images/dojo_walk_partner_splash.png
