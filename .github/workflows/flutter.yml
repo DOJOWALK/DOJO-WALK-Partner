@@ -6,36 +6,47 @@ on:
       - main
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   build-release-apk:
     name: Build DOJO WALK Partner APK
     runs-on: ubuntu-latest
 
     steps:
+      # 1. Checkout repository
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      # 2. Set up Flutter
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
           channel: stable
           cache: true
 
+      # 3. Install dependencies
       - name: Install dependencies
         run: flutter pub get
 
+      # 4. Generate Android Launcher Icon
       - name: Generate Android Launcher Icon
         run: dart run flutter_launcher_icons
 
+      # 5. Analyze Flutter code
       - name: Analyze Flutter code
         run: flutter analyze
 
+      # 6. Run Flutter tests
       - name: Run Flutter tests
         run: flutter test
 
+      # 7. Build Release APK
       - name: Build Release APK
         run: flutter build apk --release
 
+      # 8. Upload Release APK
       - name: Upload Release APK
         uses: actions/upload-artifact@v4
         with:
