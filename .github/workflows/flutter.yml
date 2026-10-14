@@ -30,23 +30,29 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
-      # 4. Generate Android Launcher Icon
+      # 4. Verify image assets exist
+      - name: Verify Partner App Images
+        run: |
+          test -f "assets/icon/DOJO WALK PARTNER APP ICON .png"
+          test -f "assets/icon/DOJO WALK PARTNER SPLASH.png"
+
+      # 5. Generate Android Launcher Icon
       - name: Generate Android Launcher Icon
         run: dart run flutter_launcher_icons
 
-      # 5. Analyze Flutter code
+      # 6. Analyze Flutter code
       - name: Analyze Flutter code
         run: flutter analyze
 
-      # 6. Run Flutter tests
+      # 7. Run Flutter tests
       - name: Run Flutter tests
         run: flutter test
 
-      # 7. Build Release APK
+      # 8. Build Release APK
       - name: Build Release APK
         run: flutter build apk --release
 
-      # 8. Upload Release APK
+      # 9. Upload Release APK
       - name: Upload Release APK
         uses: actions/upload-artifact@v4
         with:
