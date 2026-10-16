@@ -13,46 +13,81 @@ jobs:
   build-release-apk:
     name: Build DOJO WALK Partner APK
     runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    env:
+      ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+      ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+      ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
 
     steps:
-      # 1. Checkout repository
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
-      # 2. Set up Flutter
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
+          flutter-version: "3.35.7"
           channel: stable
           cache: true
 
-      # 3. Install dependencies
+      - name: Check Stable Signing Secrets
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          for item in KEYSTORE_B64 KEYSTORE_PASSWORD KEY_ALIAS KEY_PASSWORD; do
+            if [ -z "${!item}" ]; then
+              echo "Required GitHub Actions secret is missing: $item"
+              exit 1
+            fi
+          done
+          echo "Stable-signing secrets are configured."
+
+      - name: Prepare Stable Android Signing Key
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          printf '%s' "$KEYSTORE_B64" | base64 --decode > android/app/upload-keystore.jks
+          test -s android/app/upload-keystore.jks
+          chmod 600 android/app/upload-keystore.jks
+          echo "Stable signing keystore prepared on the runner."
+
       - name: Install dependencies
         run: flutter pub get
 
-      # 4. Verify image assets exist
       - name: Verify Partner App Images
         run: |
-          test -f "assets/icon/DOJO WALK PARTNER APP ICON .png"
-          test -f "assets/icon/DOJO WALK PARTNER SPLASH.png"
+          test -s "assets/icon/DOJO WALK PARTNER APP ICON .png"
+          test -s "assets/icon/DOJO WALK PARTNER SPLASH.png"
 
-      # 5. Generate Android Launcher Icon
       - name: Generate Android Launcher Icon
         run: dart run flutter_launcher_icons
 
-      # 6. Analyze Flutter code
       - name: Analyze Flutter code
         run: flutter analyze
 
-      # 7. Run Flutter tests
       - name: Run Flutter tests
         run: flutter test
 
-      # 8. Build Release APK
       - name: Build Release APK
         run: flutter build apk --release
 
-      # 9. Upload Release APK
+      - name: Print APK Signing Certificate Fingerprints
+        run: |
+          APK="build/app/outputs/flutter-apk/app-release.apk"
+          APKSIGNER="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
+          test -x "$APKSIGNER"
+          "$APKSIGNER" verify --print-certs "$APK"
+
+      - name: Remove Signing Key From Runner
+        if: always()
+        run: rm -f android/app/upload-keystore.jks
+
       - name: Upload Release APK
         uses: actions/upload-artifact@v4
         with:
