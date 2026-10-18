@@ -37,13 +37,13 @@ class DojoPartnerTheme {
           borderSide: BorderSide.none,
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(16),
           borderSide: const BorderSide(
             color: Color(0xFFE5E5E5),
           ),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(16),
           borderSide: const BorderSide(
             color: primaryOrange,
             width: 1.5,
@@ -56,9 +56,10 @@ class DojoPartnerTheme {
           backgroundColor: primaryOrange,
           foregroundColor: Colors.white,
           minimumSize: const Size(double.infinity, 52),
-          elevation: 0,
+          elevation: 3,
+          shadowColor: const Color(0x33FF7900),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(16),
           ),
           textStyle: const TextStyle(
             fontSize: 16,
