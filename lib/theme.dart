@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
 class DojoPartnerTheme {
-  static const Color primaryOrange = Color(0xFFFF6B00);
-  static const Color background = Color(0xFFF8F8F8);
+  static const Color primaryOrange = Color(0xFFFF7900);
+  static const Color background = Color(0xFFFFFAF5);
   static const Color textPrimary = Color(0xFF171717);
   static const Color textSecondary = Color(0xFF707070);
 
@@ -33,7 +33,7 @@ class DojoPartnerTheme {
           vertical: 16,
         ),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(16),
           borderSide: BorderSide.none,
         ),
         enabledBorder: OutlineInputBorder(
