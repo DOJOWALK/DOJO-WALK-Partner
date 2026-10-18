@@ -1314,7 +1314,7 @@ class _MetricCard extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(15),
         border: Border.all(
-          color: const Color(0xFFEAEAEA),
+          color: const Color(0xFFFFE1C8),
         ),
       ),
       child: Column(
@@ -1379,7 +1379,7 @@ class _WalkNotesCard extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(15),
         border: Border.all(
-          color: const Color(0xFFEAEAEA),
+          color: const Color(0xFFFFE1C8),
         ),
       ),
       child: Column(
@@ -1445,7 +1445,7 @@ class _NoteControl extends StatelessWidget {
         vertical: 8,
       ),
       decoration: BoxDecoration(
-        color: const Color(0xFFF8F8F8),
+        color: const Color(0xFFFFFAF5),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
@@ -1585,7 +1585,7 @@ class _ReturnCustomerPanel extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
-          color: const Color(0xFFEAEAEA),
+          color: const Color(0xFFFFE1C8),
         ),
       ),
       child: Column(
@@ -1610,7 +1610,7 @@ class _ReturnCustomerPanel extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: const Color(0xFFF8F8F8),
+              color: const Color(0xFFFFFAF5),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Row(
