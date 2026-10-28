@@ -39,7 +39,7 @@ class _WorkingScheduleScreenState
     super.initState();
 
     for (final day in _days) {
-      _enabledDays[day] = true;
+      _enabledDays[day] = false;
       _startTimes[day] = const TimeOfDay(
         hour: 7,
         minute: 0,
