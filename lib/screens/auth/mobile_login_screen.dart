@@ -274,7 +274,7 @@ class _MobileLoginScreenState extends State<MobileLoginScreen> {
                                 minWidth: 68,
                               ),
                               filled: true,
-                              fillColor: const DojoPartnerTheme.background,
+                              fillColor: DojoPartnerTheme.background,
                               contentPadding: const EdgeInsets.symmetric(
                                 horizontal: 16,
                                 vertical: 18,
