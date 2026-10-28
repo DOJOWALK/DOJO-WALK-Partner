@@ -628,7 +628,7 @@ class _ReviewSubmitScreenState extends State<ReviewSubmitScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE7E7E7)),
+        border: Border.all(color: DojoPartnerTheme.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -712,9 +712,9 @@ class _ReviewSubmitScreenState extends State<ReviewSubmitScreen> {
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFFFAFAFA),
+        color: DojoPartnerTheme.background,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFEEEEEE)),
+        border: Border.all(color: DojoPartnerTheme.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1001,7 +1001,7 @@ class _ReviewSubmitScreenState extends State<ReviewSubmitScreen> {
                         border: Border.all(
                           color: _agreed
                               ? DojoPartnerTheme.primaryOrange
-                              : const Color(0xFFE5E5E5),
+                              : DojoPartnerTheme.border,
                         ),
                       ),
                       child: Row(
@@ -1049,7 +1049,7 @@ class _ReviewSubmitScreenState extends State<ReviewSubmitScreen> {
           decoration: const BoxDecoration(
             color: Colors.white,
             border: Border(
-              top: BorderSide(color: Color(0xFFE8E8E8)),
+              top: BorderSide(color: DojoPartnerTheme.border),
             ),
           ),
           child: Center(
@@ -1099,7 +1099,7 @@ class _ReviewSubmitScreenState extends State<ReviewSubmitScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFFAFAFA),
+      backgroundColor: DojoPartnerTheme.background,
       appBar: AppBar(
         title: const Text('Review & Submit'),
         centerTitle: true,
@@ -1128,7 +1128,7 @@ class ApplicationSubmittedScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFFAFAFA),
+      backgroundColor: DojoPartnerTheme.background,
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -1179,7 +1179,7 @@ class ApplicationSubmittedScreen extends StatelessWidget {
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(14),
                       border: Border.all(
-                        color: const Color(0xFFE5E5E5),
+                        color: DojoPartnerTheme.border,
                       ),
                     ),
                     child: const Column(
