@@ -595,7 +595,7 @@ class _TimeButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: const Color(0xFFF8F8F8),
+      color: DojoPartnerTheme.background,
       borderRadius: BorderRadius.circular(12),
       child: InkWell(
         onTap: onTap,
