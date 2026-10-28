@@ -256,7 +256,7 @@ class _OtpScreenState extends State<OtpScreen> {
                                 color: Color(0xFFBDBDBD),
                               ),
                               filled: true,
-                              fillColor: const DojoPartnerTheme.background,
+                              fillColor: DojoPartnerTheme.background,
                               contentPadding:
                                   const EdgeInsets.symmetric(
                                 vertical: 20,
