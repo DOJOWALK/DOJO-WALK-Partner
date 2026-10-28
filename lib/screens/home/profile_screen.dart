@@ -16,7 +16,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool _loading = true;
 
   String _fullName = 'Partner';
-  String _walkerId = 'DOJO-W-00124';
+  String _walkerId = 'Not assigned';
   String _zoneName = 'Not set';
   String _service = 'Dog Walking';
   String _rating = 'Not rated';
@@ -80,7 +80,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
           _walkerId = _readString(
             data['walkerId'],
-            fallback: 'DOJO-W-00124',
+            fallback: 'Not assigned',
           );
 
           _zoneName = _readString(
