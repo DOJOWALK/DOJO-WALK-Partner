@@ -36,7 +36,7 @@ Draft policies remain draft; this document does not approve business rules.
 - [x] Shared Material 3 theme tokens added for orange, warm background, primary/muted text and borders.
 - [x] Mobile login and OTP screens use the shared warm background and shared neutral border/background tokens where applicable.
 - [x] Account-check screen uses shared background/border tokens for reviewed neutral surfaces.
-- [x] Work-location and KYC document screens use shared background/border tokens for reviewed neutral surfaces.
+- [x] Work-location, KYC document, live-selfie, current-address, review-submit and application-submitted screens use shared background/border tokens for reviewed neutral surfaces.
 - [x] Schedule screen no longer fabricates booking cards; it explains that confirmed walks appear when available.
 - [x] Earnings screen no longer displays sample balances or fake ledger entries.
 - [x] Working-schedule days default to off until the Partner explicitly selects availability.
@@ -44,7 +44,7 @@ Draft policies remain draft; this document does not approve business rules.
 - [x] Theme-token/widget tests were updated in source, but have not yet been executed.
 
 ### Not yet verified / remaining
-- [ ] Inspect every authentication and onboarding screen for all visual states, accessibility, responsive layout and consistent spacing.
+- [ ] Inspect every authentication and onboarding screen for all visual states, accessibility, responsive layout and consistent spacing; remaining hard-coded semantic/status colors need review.
 - [ ] Verify account status routing against approved POL-025 rules; do not infer verification/activation from UI alone.
 - [ ] Review booking offers, walk start/complete, GPS permissions/freshness, incidents, notifications, profile and support.
 - [ ] Flutter analyze, widget tests, integration tests and web/device build have not been run in this work session.
