@@ -30,5 +30,25 @@ Loading, empty, error, permission denied, pending/review, disabled action with r
 - POL-013 — Walker earnings and payout.
 Draft policies remain draft; this document does not approve business rules.
 
-## Verification status
-Theme tokens updated in the working branch. Schedule and earnings mock content removed from the reviewed screens. Remaining Partner screens still require a screen-by-screen code audit, device screenshots, Flutter analyze/tests and flow verification. Firebase integration/security remains a separate phase.
+## Screen-by-screen implementation audit
+
+### Reviewed / changed in the working branch
+- [x] Shared Material 3 theme tokens added for orange, warm background, primary/muted text and borders.
+- [x] Mobile login and OTP screens use the shared warm background and shared neutral border/background tokens where applicable.
+- [x] Account-check screen uses shared background/border tokens for reviewed neutral surfaces.
+- [x] Work-location and KYC document screens use shared background/border tokens for reviewed neutral surfaces.
+- [x] Schedule screen no longer fabricates booking cards; it explains that confirmed walks appear when available.
+- [x] Earnings screen no longer displays sample balances or fake ledger entries.
+- [x] Working-schedule days default to off until the Partner explicitly selects availability.
+- [x] Placeholder Partner/Walker ID removed from reviewed home/profile UI.
+- [x] Theme-token/widget tests were updated in source, but have not yet been executed.
+
+### Not yet verified / remaining
+- [ ] Inspect every authentication and onboarding screen for all visual states, accessibility, responsive layout and consistent spacing.
+- [ ] Verify account status routing against approved POL-025 rules; do not infer verification/activation from UI alone.
+- [ ] Review booking offers, walk start/complete, GPS permissions/freshness, incidents, notifications, profile and support.
+- [ ] Flutter analyze, widget tests, integration tests and web/device build have not been run in this work session.
+- [ ] Capture device screenshots and compare against the Notion reference.
+- [ ] Firebase integration/security remains a separate phase; no claim of backend validation is made.
+
+Checklist marks mean source review/change only, not test pass or policy approval.
