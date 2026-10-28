@@ -274,7 +274,7 @@ class _MobileLoginScreenState extends State<MobileLoginScreen> {
                                 minWidth: 68,
                               ),
                               filled: true,
-                              fillColor: const Color(0xFFFAFAFA),
+                              fillColor: const DojoPartnerTheme.background,
                               contentPadding: const EdgeInsets.symmetric(
                                 horizontal: 16,
                                 vertical: 18,
@@ -282,13 +282,13 @@ class _MobileLoginScreenState extends State<MobileLoginScreen> {
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(14),
                                 borderSide: const BorderSide(
-                                  color: Color(0xFFE5E5E5),
+                                  color: DojoPartnerTheme.border,
                                 ),
                               ),
                               enabledBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(14),
                                 borderSide: const BorderSide(
-                                  color: Color(0xFFE5E5E5),
+                                  color: DojoPartnerTheme.border,
                                 ),
                               ),
                               focusedBorder: OutlineInputBorder(
