@@ -259,13 +259,13 @@ class _CurrentAddressScreenState
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
         borderSide: const BorderSide(
-          color: Color(0xFFE5E5E5),
+          color: DojoPartnerTheme.border,
         ),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
         borderSide: const BorderSide(
-          color: Color(0xFFE5E5E5),
+          color: DojoPartnerTheme.border,
         ),
       ),
       focusedBorder: OutlineInputBorder(
@@ -470,7 +470,7 @@ class _CurrentAddressScreenState
         color: Colors.white,
         border: Border(
           top: BorderSide(
-            color: Color(0xFFE8E8E8),
+            color: DojoPartnerTheme.border,
           ),
         ),
       ),
@@ -483,7 +483,7 @@ class _CurrentAddressScreenState
             backgroundColor: DojoPartnerTheme.primaryOrange,
             foregroundColor: Colors.white,
             disabledBackgroundColor:
-                const Color(0xFFE5E5E5),
+                DojoPartnerTheme.border,
             elevation: 0,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(13),
@@ -513,7 +513,7 @@ class _CurrentAddressScreenState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFFAFAFA),
+      backgroundColor: DojoPartnerTheme.background,
       appBar: AppBar(
         title: const Text('Current Address'),
         centerTitle: true,
