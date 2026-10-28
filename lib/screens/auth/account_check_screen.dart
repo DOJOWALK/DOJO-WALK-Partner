@@ -236,10 +236,10 @@ class _AccountCheckScreenState extends State<AccountCheckScreen> {
                         Container(
                           padding: const EdgeInsets.all(26),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFFAFAFA),
+                            color: const DojoPartnerTheme.background,
                             borderRadius: BorderRadius.circular(22),
                             border: Border.all(
-                              color: const Color(0xFFEEEEEE),
+                              color: const DojoPartnerTheme.border,
                             ),
                           ),
                           child: Column(
