@@ -2,10 +2,12 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
-const Color _orange = Color(0xFFFF7900);
-const Color _background = Color(0xFFFFFAF5);
-const Color _text = Color(0xFF252525);
-const Color _muted = Color(0xFF777777);
+import '../../../theme.dart';
+
+const Color _orange = DojoPartnerTheme.primaryOrange;
+const Color _background = DojoPartnerTheme.background;
+const Color _text = DojoPartnerTheme.textPrimary;
+const Color _muted = DojoPartnerTheme.textSecondary;
 const Color _green = Color(0xFF23834B);
 
 class ApplicationSubmittedScreen extends StatefulWidget {
