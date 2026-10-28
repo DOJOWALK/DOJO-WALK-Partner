@@ -1445,7 +1445,7 @@ class _NoteControl extends StatelessWidget {
         vertical: 8,
       ),
       decoration: BoxDecoration(
-        color: const Color(0xFFF8F8F8),
+        color: DojoPartnerTheme.background,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
@@ -1610,7 +1610,7 @@ class _ReturnCustomerPanel extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: const Color(0xFFF8F8F8),
+              color: DojoPartnerTheme.background,
               borderRadius: BorderRadius.circular(12),
             ),
             child: Row(
