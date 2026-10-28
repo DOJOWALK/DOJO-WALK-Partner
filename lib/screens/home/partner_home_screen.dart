@@ -26,7 +26,7 @@ class _PartnerHomeScreenState extends State<PartnerHomeScreen> {
   String? _reviewWalkId;
 
   String _fullName = 'Partner';
-  String _partnerId = 'DOJO-W-00124';
+  String _partnerId = 'Not assigned';
 
   List<Map<String, dynamic>> _todayBookings = [];
 
@@ -70,7 +70,7 @@ class _PartnerHomeScreenState extends State<PartnerHomeScreen> {
 
           _partnerId = walkerId is String && walkerId.trim().isNotEmpty
               ? walkerId.trim()
-              : 'DOJO-W-00124';
+              : 'Not assigned';
 
           _scheduleSet = schedule is Map &&
               schedule['status'] != null &&
@@ -598,6 +598,12 @@ class _PartnerHomeScreenState extends State<PartnerHomeScreen> {
     final firstName = _fullName.trim().isEmpty
         ? 'Partner'
         : _fullName.trim().split(' ').first;
+    final hour = DateTime.now().hour;
+    final greeting = hour < 12
+        ? 'Good morning'
+        : hour < 17
+            ? 'Good afternoon'
+            : 'Good evening';
 
     final totalWalks = _todayBookings.length;
 
@@ -642,7 +648,7 @@ class _PartnerHomeScreenState extends State<PartnerHomeScreen> {
                   padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
                   children: [
                     Text(
-                      'Good morning, $firstName 👋',
+                      '$greeting, $firstName 👋',
                       style: const TextStyle(
                         fontSize: 25,
                         fontWeight: FontWeight.w800,
