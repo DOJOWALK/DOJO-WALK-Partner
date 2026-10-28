@@ -145,7 +145,7 @@ class _MobileLoginScreenState extends State<MobileLoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: DojoPartnerTheme.background,
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
