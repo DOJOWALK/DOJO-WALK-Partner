@@ -256,7 +256,7 @@ class _OtpScreenState extends State<OtpScreen> {
                                 color: Color(0xFFBDBDBD),
                               ),
                               filled: true,
-                              fillColor: const Color(0xFFFAFAFA),
+                              fillColor: const DojoPartnerTheme.background,
                               contentPadding:
                                   const EdgeInsets.symmetric(
                                 vertical: 20,
@@ -265,13 +265,13 @@ class _OtpScreenState extends State<OtpScreen> {
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(14),
                                 borderSide: const BorderSide(
-                                  color: Color(0xFFE5E5E5),
+                                  color: DojoPartnerTheme.border,
                                 ),
                               ),
                               enabledBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(14),
                                 borderSide: const BorderSide(
-                                  color: Color(0xFFE5E5E5),
+                                  color: DojoPartnerTheme.border,
                                 ),
                               ),
                               focusedBorder: OutlineInputBorder(
