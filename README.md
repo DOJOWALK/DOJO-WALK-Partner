@@ -1,17 +1,39 @@
-# dojo_partner
+# DOJO WALK Partner
 
-A new Flutter project.
+Flutter app for DOJO WALK walkers/partners.
 
-## Getting Started
+## Project source of truth
+Product behavior and operating requirements are governed by the DOJO WALK Notion policies. A policy marked draft is not an approved production rule. See:
+- `docs/PROJECT_FILE_STRUCTURE.md`
+- `docs/architecture/PARTNER_APP_ARCHITECTURE.md`
+- `docs/decisions/ADR-001-notion-as-product-source-of-truth.md`
 
-This project is a starting point for a Flutter application.
+## Current technology
+- Flutter / Dart
+- Firebase packages are declared in `pubspec.yaml`
+- Existing app entry point calls `Firebase.initializeApp()`; platform configuration and security must be verified before claiming a working environment.
 
-A few resources to get you started if this is your first Flutter project:
+## Local validation
+Run these commands in a configured Flutter environment:
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+```sh
+flutter pub get
+dart format --set-exit-if-changed lib test
+flutter analyze
+flutter test
+```
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+A successful local command is not evidence of deployed Firebase integration. Record actual command results and environment details.
+
+## Planned Partner capabilities
+Authentication, applicant onboarding and verification, availability, booking offers, live walk and safety handover, earnings statements, incident reporting, notifications, support and profile management. Feature status must be confirmed from code and tests; this list is not a claim that every capability is production-ready.
+
+## Design tokens
+- Primary orange: `#FF7900`
+- Warm background: `#FFFAF5`
+- Primary text: `#252525`
+
+## Security principles
+- Never commit credentials, API secrets, OTPs or passwords.
+- Backend must enforce authorization, assignment uniqueness, trusted walk states and earnings/payout calculations.
+- Use least-privilege Firebase rules and test them before production.
