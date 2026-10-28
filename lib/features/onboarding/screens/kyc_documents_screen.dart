@@ -449,7 +449,7 @@ class _KycDocumentsScreenState extends State<KycDocumentsScreen> {
     final completed = _completedCount;
 
     return Scaffold(
-      backgroundColor: const DojoPartnerTheme.background,
+      backgroundColor: DojoPartnerTheme.background,
       appBar: AppBar(
         title: const Text('KYC Documents'),
         centerTitle: true,
@@ -589,7 +589,7 @@ class _KycDocumentsScreenState extends State<KycDocumentsScreen> {
                             DojoPartnerTheme.primaryOrange,
                         foregroundColor: Colors.white,
                         disabledBackgroundColor:
-                            const DojoPartnerTheme.border,
+                            DojoPartnerTheme.border,
                         elevation: 0,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(13),
