@@ -290,7 +290,7 @@ class _WorkLocationScreenState extends State<WorkLocationScreen> {
           decoration: InputDecoration(
             hintText: hint,
             filled: true,
-            fillColor: const DojoPartnerTheme.background,
+            fillColor: DojoPartnerTheme.background,
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 15,
               vertical: 16,
@@ -358,7 +358,7 @@ class _WorkLocationScreenState extends State<WorkLocationScreen> {
           border: Border.all(
             color: selected
                 ? DojoPartnerTheme.primaryOrange
-                : const DojoPartnerTheme.border,
+                : DojoPartnerTheme.border,
             width: selected ? 1.6 : 1,
           ),
         ),
