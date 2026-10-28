@@ -303,7 +303,7 @@ class _KycDocumentsScreenState extends State<KycDocumentsScreen> {
         border: Border.all(
           color: isReady
               ? DojoPartnerTheme.primaryOrange
-              : const Color(0xFFE7E7E7),
+              : DojoPartnerTheme.border,
         ),
       ),
       child: Column(
@@ -555,7 +555,7 @@ class _KycDocumentsScreenState extends State<KycDocumentsScreen> {
                 color: Colors.white,
                 border: Border(
                   top: BorderSide(
-                    color: Color(0xFFE8E8E8),
+                    color: DojoPartnerTheme.border,
                   ),
                 ),
               ),
