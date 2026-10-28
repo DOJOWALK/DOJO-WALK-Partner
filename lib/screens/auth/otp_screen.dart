@@ -109,9 +109,9 @@ class _OtpScreenState extends State<OtpScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: DojoPartnerTheme.background,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: DojoPartnerTheme.background,
         elevation: 0,
         surfaceTintColor: Colors.transparent,
         leading: IconButton(
