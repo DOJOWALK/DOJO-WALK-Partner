@@ -36,24 +36,27 @@ Draft policies remain draft; this document does not approve business rules.
 - [x] Shared Material 3 theme tokens added for orange, warm background, primary/muted text and borders.
 - [x] Mobile login and OTP screens use the shared warm background and shared neutral border/background tokens where applicable.
 - [x] Account-check screen uses shared background/border tokens for reviewed neutral surfaces.
-- [x] Work-location, KYC document, live-selfie, current-address, review-submit and application-submitted screens use shared background/border tokens for reviewed neutral surfaces.
+- [x] Work-location, KYC document, live-selfie, current-address, review-submit and application-submitted screens use shared background/border tokens for reviewed neutral surfaces; selected/accent surfaces in work-location, KYC documents and current-address now use shared orange-alpha tokens.
 - [x] Schedule screen no longer fabricates booking cards; it explains that confirmed walks appear when available.
 - [x] Home distinguishes booking-query failure from a genuinely empty day, shows a retry action, and avoids displaying zero walk/hour metrics while the query is unavailable.
 - [x] Home no longer claims a fixed “Working” state; it reflects whether a schedule is configured and offers a Manage action.
 - [x] Notification and leave-request placeholder taps now explain that the feature is not available yet instead of doing nothing.
-- [x] Fixed CI-discovered invalid `const DojoPartnerTheme.*` references in Live Walk and Profile; the latest PR-head CI run passed analysis, Flutter tests, and release APK build.
+- [x] Fixed CI-discovered invalid `const DojoPartnerTheme.*` references in Live Walk and Profile. Run 210 passed analysis and tests after adding the missing-booking-ID regression test; its APK build was still in progress at last check.
 - [x] Earnings screen no longer displays sample balances or fake ledger entries.
 - [x] Working-schedule days default to off until the Partner explicitly selects availability.
 - [x] Placeholder Partner/Walker ID removed from reviewed home/profile UI.
 - [x] Live Walk neutral surfaces and Partner Profile borders use the shared theme tokens.
+- [x] Pickup navigation prevents progress when the booking ID is missing, shows a support message, and has a regression widget test.
+- [x] Pickup navigation map placeholder, action panel border, slider surface and slider border use shared theme tokens.
 - [x] Splash screen background, loading indicator and branding text use shared theme tokens.
-- [x] Theme-token/widget tests passed on PR-head CI run 205 for commit `3d4da0ffb8e162f5b8c217d5ba620792dfa64620`.
+- [x] Theme-token/widget tests passed on PR-head CI run 210 for commit `809a9832f25aa775a503aa4fd7f2858f8b9267c0`.
 
 ### Not yet verified / remaining
 - [ ] Inspect every authentication and onboarding screen for all visual states, accessibility, responsive layout and consistent spacing; remaining hard-coded semantic/status colors need review.
 - [ ] Verify account status routing against approved POL-025 rules; do not infer verification/activation from UI alone.
 - [ ] Review booking offers, walk start/complete, GPS permissions/freshness, incidents, notifications, profile and support.
-- [x] GitHub Actions run 205 for commit `3d4da0ffb8e162f5b8c217d5ba620792dfa64620`: Flutter analysis, Flutter tests, release APK build, and APK artifact upload all completed successfully. Artifact: `dojo-walk-partner-release-apk` (about 43.5 MB; expires 2026-11-05). This verifies CI build/test only, not on-device visual QA or Firebase integration.
+- [x] GitHub Actions run 205 for commit `3d4da0ffb8e162f5b8c217d5ba620792dfa64620`: Flutter analysis, Flutter tests, release APK build, and APK artifact upload all completed successfully. Artifact: `dojo-walk-partner-release-apk` (about 43.5 MB; expires 2026-11-05). This verifies that earlier commit only, not the latest UI edits.
+- [ ] Latest UI/theme sweep commit `110bc7bf005f9b1fe43ed1e1ac60a2c00ae3d3a9` is being checked in run 213. Analysis and Flutter tests passed; release APK build was still running at the last poll. Check final build/artifact result before marking latest head validated.
 - [ ] Integration tests and web/device visual QA remain outstanding.
 - [x] Inspected failed CI run 188: `flutter analyze` found invalid `const DojoPartnerTheme.*` references in Live Walk and Profile. The references were corrected and the latest PR-head run 205 completed analysis, tests, APK build and artifact upload successfully.
 - [ ] Capture device screenshots and compare against the Notion reference.
