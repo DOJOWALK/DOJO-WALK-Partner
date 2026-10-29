@@ -215,7 +215,7 @@ class _WalkDetailsScreenState
                 borderRadius:
                     BorderRadius.circular(18),
                 border: Border.all(
-                  color: const Color(0xFFEAEAEA),
+                  color: DojoPartnerTheme.border,
                 ),
               ),
               child: Row(
@@ -326,7 +326,7 @@ class _WalkDetailsScreenState
                 borderRadius:
                     BorderRadius.circular(16),
                 border: Border.all(
-                  color: const Color(0xFFEAEAEA),
+                  color: DojoPartnerTheme.border,
                 ),
               ),
               child: Column(
@@ -434,7 +434,7 @@ class _InfoCard extends StatelessWidget {
         borderRadius:
             BorderRadius.circular(14),
         border: Border.all(
-          color: const Color(0xFFEAEAEA),
+          color: DojoPartnerTheme.border,
         ),
       ),
       child: Row(
