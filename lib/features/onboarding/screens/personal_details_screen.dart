@@ -721,7 +721,7 @@ class _PersonalDetailsScreenState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFFAFAFA),
+      backgroundColor: DojoPartnerTheme.background,
       appBar: AppBar(
         title: const Text('Personal Details'),
         centerTitle: true,
