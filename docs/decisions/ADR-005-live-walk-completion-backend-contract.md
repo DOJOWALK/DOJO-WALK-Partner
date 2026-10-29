@@ -8,6 +8,11 @@
   - Current repository rules have no `/walks/{walkId}` match and the assigned-walker allowlist excludes fields the batch updates.
   - The only exported callable is `checkBackend`; no completion endpoint currently exists.
   - The repository deployment config does not identify a Firestore rules file.
+- Notion policy alignment check (checked 2026-10-30):
+  - POL-007 — Live Walk & Safe Handover Policy is marked Draft — Founder approval required. It says the backend must validate actor, assignment, permitted state transitions and duplicate requests; completion requires safe return, authorized recipient, required handover evidence and backend validation.
+  - POL-006 — Customer Booking & Eligibility Policy is marked Draft — Founder approval required. It says server state is authoritative and customer-facing “Completed” requires approved completion/handover requirements.
+  - POL-026 — Walker Availability, Booking Assignment & Replacement Policy is marked Draft — not approved, implemented or tested. It requires backend-controlled transitions and idempotent retries.
+  - Therefore, no exact allowed source booking status, duration limits, required evidence schema, or emergency override is treated as approved by this repository change. These must be confirmed by Founder/CEO before coding those constraints.
 - Required callable contract (proposed):
   - Input: non-empty `bookingId`, stable client `completionRequestId`, walk observations (duration, distance, pee/poop counts, route, start/end location when available, start verification flags, return-location verification result).
   - Identity: derive `walkerId` exclusively from verified Firebase Auth context; never trust a client-supplied walker ID.
