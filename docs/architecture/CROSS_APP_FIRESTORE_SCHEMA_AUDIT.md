@@ -58,3 +58,11 @@ Partner currently creates a random-ID `walks/{walkId}` document with `walkerId`,
 - POL-006 — Customer Booking & Eligibility Policy (Notion; Draft at last check).
 - POL-007 — Live Walk & Safe Handover Policy (Notion; Draft at last check).
 - POL-026 — Walker Availability, Booking Assignment & Replacement Policy (Notion; Draft at last check).
+
+
+## Follow-up verification — Partner pickup-location reader (2026-10-30)
+- [x] Re-read Partner `lib/features/live_walk/screens/live_walk_screen.dart` at branch `chore/notion-aligned-structure`, source blob `e551856f752c6b11df1e718e50eb3a4d9d53677b`.
+- [x] Confirmed `_loadCustomerLocation()` reads only top-level `bookings.latitude`, `bookings.longitude`, or top-level `bookings.location` when it is a Firestore `GeoPoint`.
+- [ ] The selected Customer booking writer passes `pickupAddress` as a map and also stores `pickupAddressId`; canonical coordinate keys inside that map have not yet been proven from the inspected source excerpt. Do not guess map keys.
+- [ ] Next verification: trace the Customer address model/save path and determine the actual coordinate key names, then agree a versioned shared location contract before changing either app.
+- [ ] Do not use this client-side reader as an authorization or service-zone eligibility check. Server-side booking/zone validation is required by the approved backend contract.
