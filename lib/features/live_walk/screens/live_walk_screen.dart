@@ -114,6 +114,7 @@ class _LiveWalkScreenState extends State<LiveWalkScreen> {
 
       // Do not count walk duration until a valid GPS fix is received.
       // The first accepted position starts both the route and timer.
+      await _startLocationStream();
     } catch (_) {
       if (!mounted) return;
 
