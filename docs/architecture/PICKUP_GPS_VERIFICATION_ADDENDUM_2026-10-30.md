@@ -38,3 +38,13 @@ This addendum supersedes earlier statements in the audit that CI was still unver
 ## Safety boundary
 
 No PR was merged. No Firebase deployment, production data change, or Firestore rules change was made. Notion policy approval and shared schema decisions remain prerequisites for changing authoritative booking/status behavior.
+
+
+## Partner nested-coordinate regression coverage added — 2026-10-30
+
+- [x] Extracted nested `pickupAddress` parsing into pure helper `lib/features/live_walk/models/pickup_coordinates.dart`.
+- [x] Live Walk now uses the helper for nested pickup coordinates while preserving legacy top-level and GeoPoint fallback paths.
+- [x] Added `test/features/live_walk/models/pickup_coordinates_test.dart` for valid numeric values, numeric strings, missing coordinates, partial pairs, malformed values, NaN/infinity, out-of-range values, and valid geographic boundaries.
+- Latest test commit: `6354db8586f65286a38449481f94d73bda793617`.
+- [ ] GitHub Actions run for this latest commit has not yet been returned by the PR-run lookup. Do not mark these new tests as passed until a workflow result confirms it.
+- [ ] Firebase Emulator end-to-end and device GPS/handover verification remain outstanding.
