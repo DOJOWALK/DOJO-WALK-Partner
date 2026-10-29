@@ -84,3 +84,11 @@ Draft policies remain draft; this document does not approve business rules.
 - [ ] Firebase integration/security remains a separate phase; no claim of backend validation is made.
 
 Checklist marks mean source review/change only, not test pass or policy approval.
+
+
+## Security review — Live Walk completion
+- [x] Inspected repository Firestore rules against the current Live Walk completion batch. No `/walks/{walkId}` rule exists and the recursive default-deny rule blocks unmatched writes. The assigned-walker booking update allowlist also excludes `completedAt`, `dogReturned`, and `returnLocationVerified` written by the current batch. Documented as ADR-003 in commit `322b80917eb71d1c2f3afcfd27286a5ee76d168a`.
+- [ ] Confirm which rules are deployed to Firebase; repository rules alone do not prove deployment state.
+- [ ] Design and implement a trusted, authorized Live Walk completion transition; do not widen client rules broadly.
+- [ ] Add Firestore Rules Unit Tests / Emulator tests for assigned vs wrong walker, unauthenticated access, missing/already-completed booking, duplicate completion and atomic write failure.
+- [ ] Verify backend, rules and device integration before claiming Live Walk completion works in production.
