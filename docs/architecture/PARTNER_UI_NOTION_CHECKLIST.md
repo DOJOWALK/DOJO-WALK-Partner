@@ -11,6 +11,8 @@ Modern Premium, minimal, action-first mobile UI. Live Walk is map-centric; keep 
 - Primary text: #252525
 - White surfaces, subtle borders/shadows, readable typography, rounded cards and consistent icon style.
 - Motion should be purposeful and should not block critical actions.
+- Use shared orange-alpha tokens for brand/accent surfaces instead of one-off warm hex values.
+- Keep semantic status colors (success, warning, error, disabled) meaningful; do not recolor status indicators orange merely to force brand consistency.
 
 ## Partner screen requirements
 - Home: real next walk, current status, availability, next best action, no fabricated metrics.
