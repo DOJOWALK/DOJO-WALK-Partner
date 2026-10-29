@@ -1055,8 +1055,8 @@ class _ReviewPromptCard extends StatelessWidget {
         color: DojoPartnerTheme.primaryOrange.withValues(alpha: 0.04),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-        color: DojoPartnerTheme.primaryOrange.withValues(alpha: 0.18),
-      ),
+          color: DojoPartnerTheme.primaryOrange.withValues(alpha: 0.18),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1156,8 +1156,8 @@ class _SetupCard extends StatelessWidget {
         color: DojoPartnerTheme.primaryOrange.withValues(alpha: 0.04),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-        color: DojoPartnerTheme.primaryOrange.withValues(alpha: 0.18),
-      ),
+          color: DojoPartnerTheme.primaryOrange.withValues(alpha: 0.18),
+        ),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
