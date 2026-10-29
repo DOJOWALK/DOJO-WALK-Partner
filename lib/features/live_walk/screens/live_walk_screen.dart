@@ -807,7 +807,12 @@ class _LiveWalkScreenState extends State<LiveWalkScreen> {
         _isEnding = false;
       });
 
-      _startTimer();
+      // A failed save must not start counting a walk that never received
+      // its first valid GPS fix. If tracking had already started, resume
+      // the elapsed-time counter while the Partner retries the save.
+      if (_startedAt != null) {
+        _startTimer();
+      }
 
       try {
         await _startLocationStream();
