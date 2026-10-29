@@ -65,9 +65,13 @@ void main() {
         ),
       );
 
-      final navigateButton = find.byType(ElevatedButton);
-      await tester.ensureVisible(navigateButton);
-      await tester.tap(navigateButton);
+      await tester.drag(
+        find.byType(ListView),
+        const Offset(0, -1200),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Navigate to Pickup'));
       await tester.pump();
 
       expect(
