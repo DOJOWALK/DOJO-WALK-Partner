@@ -83,7 +83,7 @@ class WalkSummaryScreen extends StatelessWidget {
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(
-                    color: const Color(0xFFE8E8E8),
+                    color: DojoPartnerTheme.border,
                   ),
                 ),
                 child: Column(
