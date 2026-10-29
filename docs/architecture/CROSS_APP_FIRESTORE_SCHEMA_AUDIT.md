@@ -66,3 +66,14 @@ Partner currently creates a random-ID `walks/{walkId}` document with `walkerId`,
 - [ ] The selected Customer booking writer passes `pickupAddress` as a map and also stores `pickupAddressId`; canonical coordinate keys inside that map have not yet been proven from the inspected source excerpt. Do not guess map keys.
 - [ ] Next verification: trace the Customer address model/save path and determine the actual coordinate key names, then agree a versioned shared location contract before changing either app.
 - [ ] Do not use this client-side reader as an authorization or service-zone eligibility check. Server-side booking/zone validation is required by the approved backend contract.
+
+
+## Confirmed Customer pickup-coordinate omission (2026-10-30)
+- [x] Inspected Customer `SavedAddress` model: saved address documents support numeric `latitude` and `longitude`; `toBookingSnapshot()` includes them, and `fromMap()` reads them.
+- [x] Inspected Customer `pickup_address_selection_screen.dart`: the `addressMap` passed into booking confirmation currently copies address text and instructions but omits `latitude` and `longitude`.
+- [x] Inspected Customer `booking_confirmation_screen.dart`: booking writer stores this map as `pickupAddress` and does not write top-level `latitude`, `longitude`, or `location` in the observed booking payload.
+- [x] Inspected Partner `LiveWalkScreen._loadCustomerLocation()`: it reads top-level `latitude`, `longitude`, or top-level `location` GeoPoint only; it does not inspect `pickupAddress.latitude/longitude`.
+- **Finding:** this is a confirmed writer/reader contract gap in the inspected code. Even if the saved address has coordinates, the booking snapshot builder omits them; Partner then does not read nested pickup coordinates. For some bookings this can leave customer pickup coordinates unavailable to the live-walk screen.
+- [ ] Safe fix proposal (not implemented): include `latitude` and `longitude` from `SavedAddress` in the selected `addressMap`; add a validated fallback in Partner to read `pickupAddress.latitude/longitude` while retaining legacy top-level fields; add Customer/Partner tests for valid, missing, malformed and out-of-range coordinates.
+- [ ] Confirm behavior when saved address coordinates are null: do not silently treat missing coordinates as a verified pickup point; define approved booking eligibility / UI handling.
+- [ ] After code change, run both Customer and Partner CI/tests and verify an end-to-end booking in Firebase Emulator before release. No production deployment or data migration performed.
