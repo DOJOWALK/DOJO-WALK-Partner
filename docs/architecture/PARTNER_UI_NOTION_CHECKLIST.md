@@ -138,3 +138,12 @@ Checklist marks mean source review/change only, not test pass or policy approval
 - [ ] Define the missing-coordinate behavior before treating pickup as GPS-verified; validate coordinate range and do not silently assume a location.
 - [ ] Run Customer and Partner CI plus Emulator end-to-end booking/live-walk tests; do not deploy until those pass.
 - Evidence: Customer `lib/features/addresses/models/saved_address.dart`, `lib/features/booking/screens/pickup_address_selection_screen.dart`, `lib/features/booking/screens/booking_confirmation_screen.dart`; Partner `lib/features/live_walk/screens/live_walk_screen.dart`.
+
+
+## Pickup coordinate fix status (2026-10-30)
+- [x] Customer branch `fix/pickup-coordinate-contract`: `pickup_address_selection_screen.dart` now includes saved `latitude` and `longitude` in the selected booking address map when non-null. Commit: `5e2b32b6a95fbc28e34331c1b2275fb701d57050`.
+- [x] Partner branch `chore/notion-aligned-structure`: `LiveWalkScreen._loadCustomerLocation()` now checks validated nested `pickupAddress.latitude/longitude` after legacy top-level coordinates and before legacy top-level GeoPoint. Commit: `cdf9a016359c5583381aa017bea05908d9505197`.
+- [x] Both changed source files fetched back from GitHub to verify the edits.
+- [ ] Automated workflow runs were not returned for either commit by the current PR-run lookup. This is **not** evidence that CI passed; verify via GitHub Actions or create/open PRs that trigger the configured workflows.
+- [ ] Regression tests and Firebase Emulator end-to-end test remain required. Null/malformed/out-of-range coordinates are rejected by the Partner validator; no coordinate is invented when missing.
+- [ ] Customer change is on a dedicated branch and must be reviewed through a PR. Partner PR #5 remains Draft; do not merge/deploy until tests and policy alignment are confirmed.
