@@ -1003,7 +1003,7 @@ class _EmptyWorkCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFEAEAEA)),
+        border: Border.all(color: DojoPartnerTheme.border),
       ),
       child: const Column(
         children: [
@@ -1238,7 +1238,7 @@ class _OverviewCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFEAEAEA)),
+        border: Border.all(color: DojoPartnerTheme.border),
       ),
       child: Row(
         children: [
@@ -1301,7 +1301,7 @@ class _WalkCard extends StatelessWidget {
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0xFFEAEAEA)),
+            border: Border.all(color: DojoPartnerTheme.border),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
