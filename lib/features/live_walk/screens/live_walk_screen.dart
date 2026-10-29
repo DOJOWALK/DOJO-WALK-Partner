@@ -11,6 +11,7 @@ import '../../../theme.dart';
 import '../../../screens/home/customer_otp_sheet.dart';
 import '../../../screens/home/walk_summary_screen.dart';
 
+import '../models/pickup_coordinates.dart';
 import '../services/location_permission_service.dart';
 
 class LiveWalkScreen extends StatefulWidget {
@@ -422,12 +423,11 @@ class _LiveWalkScreenState extends State<LiveWalkScreen> {
       // Keep this fallback for bookings created after the coordinate contract fix.
       final pickupAddress = data['pickupAddress'];
       if (pickupAddress is Map) {
-        final pickupLatitude = _readDouble(pickupAddress['latitude']);
-        final pickupLongitude = _readDouble(pickupAddress['longitude']);
+        final pickupCoordinates = readPickupCoordinates(pickupAddress);
 
-        if (_validCoordinates(pickupLatitude, pickupLongitude)) {
-          _customerLatitude = pickupLatitude;
-          _customerLongitude = pickupLongitude;
+        if (pickupCoordinates != null) {
+          _customerLatitude = pickupCoordinates.latitude;
+          _customerLongitude = pickupCoordinates.longitude;
           return;
         }
       }
