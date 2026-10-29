@@ -641,7 +641,8 @@ class _PartnerHomeScreenState extends State<PartnerHomeScreen> {
         ),
         actions: [
           IconButton(
-            onPressed: () {},
+            onPressed: () => _showPendingFeatureMessage('Notifications'),
+            tooltip: 'Notifications',
             icon: const Icon(Icons.notifications_none_rounded),
           ),
         ],
