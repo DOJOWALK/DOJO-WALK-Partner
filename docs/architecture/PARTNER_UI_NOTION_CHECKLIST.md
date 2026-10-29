@@ -106,3 +106,5 @@ Checklist marks mean source review/change only, not test pass or policy approval
 - [ ] Validate allowed source booking status and field schema against approved Notion policy before implementation.
 - [ ] Implement callable and replace client-side direct completion batch.
 - [ ] Add emulator tests and verify rules/function deployment configuration; production behavior remains unverified.
+
+- [x] Cross-checked the Live Walk backend contract against Notion POL-006, POL-007 and POL-026. All three source policies are still draft/unapproved, so exact source statuses, evidence schema and exception rules remain blocked pending Founder/CEO approval (ADR-005 update commit `8bf3b051c45216af29f5118a2ca5b2c4ef5e4bdc`).
