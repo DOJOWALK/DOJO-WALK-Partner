@@ -77,3 +77,12 @@ Partner currently creates a random-ID `walks/{walkId}` document with `walkerId`,
 - [ ] Safe fix proposal (not implemented): include `latitude` and `longitude` from `SavedAddress` in the selected `addressMap`; add a validated fallback in Partner to read `pickupAddress.latitude/longitude` while retaining legacy top-level fields; add Customer/Partner tests for valid, missing, malformed and out-of-range coordinates.
 - [ ] Confirm behavior when saved address coordinates are null: do not silently treat missing coordinates as a verified pickup point; define approved booking eligibility / UI handling.
 - [ ] After code change, run both Customer and Partner CI/tests and verify an end-to-end booking in Firebase Emulator before release. No production deployment or data migration performed.
+
+
+## Pickup coordinate fix status (2026-10-30)
+- [x] Customer branch `fix/pickup-coordinate-contract`: `pickup_address_selection_screen.dart` now includes saved `latitude` and `longitude` in the selected booking address map when non-null. Commit: `5e2b32b6a95fbc28e34331c1b2275fb701d57050`.
+- [x] Partner branch `chore/notion-aligned-structure`: `LiveWalkScreen._loadCustomerLocation()` now checks validated nested `pickupAddress.latitude/longitude` after legacy top-level coordinates and before legacy top-level GeoPoint. Commit: `cdf9a016359c5583381aa017bea05908d9505197`.
+- [x] Both changed source files fetched back from GitHub to verify the edits.
+- [ ] Automated workflow runs were not returned for either commit by the current PR-run lookup. This is **not** evidence that CI passed; verify via GitHub Actions or create/open PRs that trigger the configured workflows.
+- [ ] Regression tests and Firebase Emulator end-to-end test remain required. Null/malformed/out-of-range coordinates are rejected by the Partner validator; no coordinate is invented when missing.
+- [ ] Customer change is on a dedicated branch and must be reviewed through a PR. Partner PR #5 remains Draft; do not merge/deploy until tests and policy alignment are confirmed.
