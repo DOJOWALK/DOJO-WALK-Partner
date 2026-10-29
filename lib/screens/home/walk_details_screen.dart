@@ -30,6 +30,7 @@ class WalkDetailsScreen extends StatefulWidget {
 class _WalkDetailsScreenState
     extends State<WalkDetailsScreen> {
   bool _isLoading = false;
+  bool _isStartingNavigation = false;
 
   String _customerName = 'Customer';
   String _dogBreed = 'Dog';
@@ -153,23 +154,54 @@ class _WalkDetailsScreenState
   Future<void> _navigateToPickup() async {
     final bookingId = widget.bookingId;
 
-    if (bookingId != null &&
-        bookingId.isNotEmpty) {
-      try {
-        await FirebaseFirestore.instance
-            .collection('bookings')
-            .doc(bookingId)
-            .update({
-          'status': 'accepted',
-          'updatedAt':
-              FieldValue.serverTimestamp(),
-        });
-      } catch (_) {
-        // Navigation should still work.
+    if (bookingId == null || bookingId.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'This walk has no confirmed booking ID. Please contact support before continuing.',
+          ),
+        ),
+      );
+      return;
+    }
+
+    if (_isStartingNavigation) return;
+
+    setState(() {
+      _isStartingNavigation = true;
+    });
+
+    try {
+      await FirebaseFirestore.instance
+          .collection('bookings')
+          .doc(bookingId)
+          .update({
+        'status': 'accepted',
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Could not confirm this booking. Check your connection and try again before navigating.',
+            ),
+          ),
+        );
       }
+      if (mounted) {
+        setState(() {
+          _isStartingNavigation = false;
+        });
+      }
+      return;
     }
 
     if (!mounted) return;
+
+    setState(() {
+      _isStartingNavigation = false;
+    });
 
     Navigator.push(
       context,
@@ -181,7 +213,7 @@ class _WalkDetailsScreenState
               ? _pickupAddress
               : widget.location,
           duration: widget.duration,
-          bookingId: widget.bookingId,
+          bookingId: bookingId,
         ),
       ),
     );
@@ -399,13 +431,23 @@ class _WalkDetailsScreenState
             const SizedBox(height: 28),
 
             ElevatedButton.icon(
-              onPressed:
-                  _isLoading ? null : _navigateToPickup,
-              icon: const Icon(
-                Icons.navigation_rounded,
-              ),
-              label: const Text(
-                'Navigate to Pickup',
+              onPressed: _isLoading || _isStartingNavigation
+                  ? null
+                  : _navigateToPickup,
+              icon: _isStartingNavigation
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Icon(Icons.navigation_rounded),
+              label: Text(
+                _isStartingNavigation
+                    ? 'Confirming Booking...'
+                    : 'Navigate to Pickup',
               ),
             ),
           ],
