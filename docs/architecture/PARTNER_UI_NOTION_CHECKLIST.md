@@ -129,3 +129,12 @@ Checklist marks mean source review/change only, not test pass or policy approval
 - [ ] If no supported writer exists, implement server-side single-walker offers, atomic acceptance, eligibility/availability checks, idempotency, audit events, and Emulator tests under an approved contract.
 - [ ] Confirm current deployed Firestore rules and deployment repository before treating any checked-in rules as production enforcement.
 - Evidence: Admin Step 199/200 audit documents; Notion POL-005 and POL-026 (Draft at last check).
+
+
+## Pickup coordinate contract — confirmed finding (2026-10-30)
+- [x] Traced Customer `SavedAddress` model → pickup selection map → booking payload and Partner live-walk location reader.
+- [x] Confirmed selected pickup map omits saved `latitude`/`longitude`; booking writer stores that map under `pickupAddress` and does not write the top-level coordinate fields Partner currently checks.
+- [ ] Fix both ends only with regression tests: Customer copies coordinate fields into booking snapshot; Partner reads validated nested pickup coordinates with legacy fallback.
+- [ ] Define the missing-coordinate behavior before treating pickup as GPS-verified; validate coordinate range and do not silently assume a location.
+- [ ] Run Customer and Partner CI plus Emulator end-to-end booking/live-walk tests; do not deploy until those pass.
+- Evidence: Customer `lib/features/addresses/models/saved_address.dart`, `lib/features/booking/screens/pickup_address_selection_screen.dart`, `lib/features/booking/screens/booking_confirmation_screen.dart`; Partner `lib/features/live_walk/screens/live_walk_screen.dart`.
