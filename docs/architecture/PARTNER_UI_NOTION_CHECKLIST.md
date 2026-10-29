@@ -92,3 +92,10 @@ Checklist marks mean source review/change only, not test pass or policy approval
 - [ ] Design and implement a trusted, authorized Live Walk completion transition; do not widen client rules broadly.
 - [ ] Add Firestore Rules Unit Tests / Emulator tests for assigned vs wrong walker, unauthenticated access, missing/already-completed booking, duplicate completion and atomic write failure.
 - [ ] Verify backend, rules and device integration before claiming Live Walk completion works in production.
+
+
+## Firebase deployment configuration audit
+- [x] Inspected root `firebase.json`: it declares Cloud Functions only and does not configure a Firestore rules file or indexes. The repository contains `firestore.rules`, but its deployment through this config is not established. Recorded in ADR-004 (commit `6f3cb32c582b2d221ff1e908ab99ac9e209a620c`).
+- [ ] Confirm the actual Firebase project and deployed rules source/command; repository contents do not prove deployment state.
+- [ ] Do not add the current rules to deployment config until the Live Walk authorization and write-schema blockers are fixed and Emulator tests pass.
+- [ ] Implement and test a trusted Live Walk completion endpoint with authorization and idempotency before release.
