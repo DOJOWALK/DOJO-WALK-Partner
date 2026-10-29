@@ -774,7 +774,6 @@ class _LiveWalkScreenState extends State<LiveWalkScreen> {
       }
 
       final firestore = FirebaseFirestore.instance;
-      final bookingId = widget.bookingId?.trim();
 
       if (bookingId != null && bookingId.isNotEmpty) {
         // Save the walk record and booking completion together so a
