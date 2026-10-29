@@ -722,11 +722,16 @@ class _LiveWalkScreenState extends State<LiveWalkScreen> {
     _positionSubscription = null;
 
     try {
-      final startedAt = _startedAt ?? DateTime.now();
+      // Do not invent a start timestamp when GPS never produced a
+      // valid first fix. The walk can still be recorded after the
+      // required return/OTP flow, but its start time remains unverified.
+      final startedAt = _startedAt;
       final endedAt = DateTime.now();
 
       final walkData = <String, dynamic>{
         'walkerId': user.uid,
+        'startTimeVerified': startedAt != null,
+        'gpsTrackingStarted': _startPosition != null,
         'dogName': widget.dogName,
         'walkType': 'Regular Walk',
         'scheduledTime': widget.time,
@@ -735,7 +740,6 @@ class _LiveWalkScreenState extends State<LiveWalkScreen> {
         'location': widget.location,
         'peeCount': _peeCount,
         'poopCount': _poopCount,
-        'startedAt': Timestamp.fromDate(startedAt),
         'endedAt': Timestamp.fromDate(endedAt),
         'status': 'completed',
         'dogReturned': true,
@@ -748,6 +752,10 @@ class _LiveWalkScreenState extends State<LiveWalkScreen> {
       if (widget.bookingId != null &&
           widget.bookingId!.isNotEmpty) {
         walkData['bookingId'] = widget.bookingId;
+      }
+
+      if (startedAt != null) {
+        walkData['startedAt'] = Timestamp.fromDate(startedAt);
       }
 
       if (_startPosition != null) {
