@@ -174,7 +174,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
               child: Icon(
                 Icons.map_outlined,
                 size: 100,
-                color: Color(0xFFAAAAAA),
+                color: DojoPartnerTheme.textSecondary,
               ),
             ),
           ),
@@ -262,7 +262,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
-                    color: const Color(0xFFEAEAEA),
+                    color: DojoPartnerTheme.border,
                   ),
                 ),
                 child: Column(
@@ -448,10 +448,10 @@ class _SlideToStartState extends State<_SlideToStart> {
           child: Container(
             height: height,
             decoration: BoxDecoration(
-              color: const Color(0xFFFFF1E8),
+              color: DojoPartnerTheme.primaryOrange.withValues(alpha: 0.10),
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
-                color: const Color(0xFFFFD8BF),
+                color: DojoPartnerTheme.primaryOrange.withValues(alpha: 0.35),
               ),
             ),
             child: Stack(
