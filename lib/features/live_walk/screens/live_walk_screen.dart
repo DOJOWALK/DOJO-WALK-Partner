@@ -544,9 +544,16 @@ class _LiveWalkScreenState extends State<LiveWalkScreen> {
 
       if (!mounted) return;
 
-      if (!currentPosition.accuracy.isFinite ||
-          currentPosition.accuracy > 35) {
-        throw Exception('GPS accuracy is too low.');
+      if (!currentPosition.latitude.isFinite ||
+          !currentPosition.longitude.isFinite ||
+          !currentPosition.accuracy.isFinite ||
+          currentPosition.accuracy < 0 ||
+          currentPosition.accuracy > 35 ||
+          currentPosition.latitude < -90 ||
+          currentPosition.latitude > 90 ||
+          currentPosition.longitude < -180 ||
+          currentPosition.longitude > 180) {
+        throw Exception('GPS position is invalid or too inaccurate.');
       }
 
       _lastPosition = currentPosition;
