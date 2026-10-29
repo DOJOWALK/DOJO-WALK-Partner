@@ -20,6 +20,7 @@ class PartnerHomeScreen extends StatefulWidget {
 class _PartnerHomeScreenState extends State<PartnerHomeScreen> {
   bool _isLoading = true;
   bool _scheduleSet = false;
+  bool _todayBookingsLoadFailed = false;
 
   bool _showReviewPrompt = false;
   String? _reviewDogName;
@@ -87,6 +88,7 @@ class _PartnerHomeScreenState extends State<PartnerHomeScreen> {
 
       setState(() {
         _isLoading = false;
+        _todayBookingsLoadFailed = true;
       });
     }
   }
@@ -143,6 +145,7 @@ class _PartnerHomeScreenState extends State<PartnerHomeScreen> {
 
       setState(() {
         _todayBookings = bookings;
+        _todayBookingsLoadFailed = false;
         _isLoading = false;
       });
     } catch (_) {
@@ -150,6 +153,7 @@ class _PartnerHomeScreenState extends State<PartnerHomeScreen> {
 
       setState(() {
         _todayBookings = [];
+        _todayBookingsLoadFailed = true;
         _isLoading = false;
       });
     }
@@ -606,6 +610,7 @@ class _PartnerHomeScreenState extends State<PartnerHomeScreen> {
             : 'Good evening';
 
     final totalWalks = _todayBookings.length;
+    final overviewWalks = _todayBookingsLoadFailed ? '—' : '$totalWalks';
 
     final totalMinutes = _todayBookings.fold<int>(
       0,
@@ -614,8 +619,10 @@ class _PartnerHomeScreenState extends State<PartnerHomeScreen> {
 
     final totalHours = totalMinutes / 60;
 
-    final hoursText = totalMinutes == 0
-        ? '0 hrs'
+    final hoursText = _todayBookingsLoadFailed
+        ? '—'
+        : totalMinutes == 0
+            ? '0 hrs'
         : totalMinutes % 60 == 0
             ? '${totalMinutes ~/ 60} hrs'
             : '${totalHours.toStringAsFixed(1)} hrs';
@@ -671,7 +678,7 @@ class _PartnerHomeScreenState extends State<PartnerHomeScreen> {
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(18),
                         border: Border.all(
-                          color: const Color(0xFFEAEAEA),
+                          color: DojoPartnerTheme.border,
                         ),
                       ),
                       child: Row(
@@ -826,7 +833,7 @@ class _PartnerHomeScreenState extends State<PartnerHomeScreen> {
                           child: _OverviewCard(
                             icon: Icons.directions_walk_outlined,
                             title: 'Walks',
-                            value: '$totalWalks',
+                            value: overviewWalks,
                           ),
                         ),
                         const SizedBox(width: 12),
@@ -853,7 +860,11 @@ class _PartnerHomeScreenState extends State<PartnerHomeScreen> {
                     ),
                     const SizedBox(height: 12),
 
-                    if (_todayBookings.isEmpty)
+                    if (_todayBookingsLoadFailed)
+                      _WorkLoadErrorCard(
+                        onRetry: () => _loadPartnerData(),
+                      )
+                    else if (_todayBookings.isEmpty)
                       const _EmptyWorkCard()
                     else
                       ..._todayBookings.map(
@@ -888,7 +899,7 @@ class _PartnerHomeScreenState extends State<PartnerHomeScreen> {
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(16),
                             border: Border.all(
-                              color: const Color(0xFFEAEAEA),
+                              color: DojoPartnerTheme.border,
                             ),
                           ),
                           child: Row(
@@ -1341,6 +1352,52 @@ class _WalkCard extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+
+class _WorkLoadErrorCard extends StatelessWidget {
+  const _WorkLoadErrorCard({required this.onRetry});
+
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: DojoPartnerTheme.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(Icons.cloud_off_outlined, color: DojoPartnerTheme.textSecondary, size: 28),
+          const SizedBox(height: 10),
+          const Text(
+            "Today's work couldn't be loaded",
+            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: DojoPartnerTheme.textPrimary),
+          ),
+          const SizedBox(height: 6),
+          const Text(
+            'Check your connection and retry. We will not show this as an empty schedule until the data loads.',
+            style: TextStyle(fontSize: 13, height: 1.4, color: DojoPartnerTheme.textSecondary),
+          ),
+          const SizedBox(height: 14),
+          OutlinedButton.icon(
+            onPressed: onRetry,
+            icon: const Icon(Icons.refresh_rounded),
+            label: const Text('Retry'),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: DojoPartnerTheme.primaryOrange,
+              side: const BorderSide(color: DojoPartnerTheme.primaryOrange),
+              minimumSize: const Size(double.infinity, 48),
+            ),
+          ),
+        ],
       ),
     );
   }
