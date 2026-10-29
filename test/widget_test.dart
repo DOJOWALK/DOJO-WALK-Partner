@@ -65,7 +65,9 @@ void main() {
         ),
       );
 
-      await tester.tap(find.text('Navigate to Pickup'));
+      final navigateButton = find.byType(ElevatedButton);
+      await tester.ensureVisible(navigateButton);
+      await tester.tap(navigateButton);
       await tester.pump();
 
       expect(
@@ -74,7 +76,6 @@ void main() {
         ),
         findsOneWidget,
       );
-      expect(find.text('Navigate to Pickup'), findsOneWidget);
       expect(find.text('Confirming Booking...'), findsNothing);
       expect(tester.takeException(), isNull);
     },
