@@ -63,7 +63,8 @@ Draft policies remain draft; this document does not approve business rules.
 - [x] Run `40927287906` for walk-completion UI commit `62bb8da51f1dbc3b51b95d7ac82892896e481f7c` completed successfully.
 - [x] Run `40927504431` for regression-test commit `b7efa959ff5c8e20e8accd6ad23b721c975542a8` completed successfully: Flutter analysis, tests, release APK build and artifact upload passed.
 - [x] Run `40928091894` for Walk Details theme commit `1a4519d0f6218b0f880350297bca46252088ee5b` completed successfully.
-- [ ] Latest checklist-only commit `9113d57177b59440460832bf8b4f43dbc785c0ef` has workflow run `40928117487` still in progress at last check; wait for its completion before claiming that docs-only commit has CI confirmation.
+- [x] Checklist update commit `9113d57177b59440460832bf8b4f43dbc785c0ef` workflow run `40928117487` completed successfully, including release APK build and artifact upload.
+- [ ] Latest walk-completion accent-token change commit `c23d996dece2fddd11154e0cf09e4e948ac0ac1b` has workflow run `40929592398` in progress; do not mark this latest code change validated until it completes.
 - [ ] Integration tests and web/device visual QA remain outstanding.
 - [x] Inspected failed CI run 188: `flutter analyze` found invalid `const DojoPartnerTheme.*` references in Live Walk and Profile. The references were corrected and the latest PR-head run 205 completed analysis, tests, APK build and artifact upload successfully.
 - [ ] Capture device screenshots and compare against the Notion reference.
