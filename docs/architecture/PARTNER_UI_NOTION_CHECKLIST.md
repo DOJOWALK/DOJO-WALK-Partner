@@ -39,6 +39,9 @@ Draft policies remain draft; this document does not approve business rules.
 - [x] Work-location, KYC document, live-selfie, current-address, review-submit and application-submitted screens use shared background/border tokens for reviewed neutral surfaces.
 - [x] Schedule screen no longer fabricates booking cards; it explains that confirmed walks appear when available.
 - [x] Home distinguishes booking-query failure from a genuinely empty day, shows a retry action, and avoids displaying zero walk/hour metrics while the query is unavailable.
+- [x] Home no longer claims a fixed “Working” state; it reflects whether a schedule is configured and offers a Manage action.
+- [x] Notification and leave-request placeholder taps now explain that the feature is not available yet instead of doing nothing.
+- [x] Fixed CI-discovered invalid `const DojoPartnerTheme.*` references in Live Walk and Profile; awaiting a fresh analysis run.
 - [x] Earnings screen no longer displays sample balances or fake ledger entries.
 - [x] Working-schedule days default to off until the Partner explicitly selects availability.
 - [x] Placeholder Partner/Walker ID removed from reviewed home/profile UI.
