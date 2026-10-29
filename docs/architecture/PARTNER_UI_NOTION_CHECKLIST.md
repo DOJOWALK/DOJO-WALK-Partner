@@ -101,6 +101,10 @@ Checklist marks mean source review/change only, not test pass or policy approval
 - [ ] Implement and test a trusted Live Walk completion endpoint with authorization and idempotency before release.
 
 
+## Backend pre-deployment release gate
+- [x] Added `docs/testing/FIREBASE_BACKEND_PREDEPLOY_CHECKLIST.md` to centralize policy approval, deployed-rules provenance, trusted completion endpoint, Emulator tests, client integration and release evidence gates. This is a checklist only; it does not mean backend implementation or deployment is complete.
+- [ ] Complete each gate with evidence before enabling production Live Walk completion.
+
 ## Live Walk backend contract
 - [x] Defined proposed trusted completion endpoint contract: authenticated walker identity, assignment/status checks, atomic transaction, stable idempotency key, input validation, replay-safe response, and required failure/concurrency tests. Recorded in ADR-005 (commit `0765ef903d9c3eb537d1bc82decef771ac5311b5`).
 - [ ] Validate allowed source booking status and field schema against approved Notion policy before implementation.
