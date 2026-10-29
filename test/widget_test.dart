@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:dojo_partner/app.dart';
 import 'package:dojo_partner/theme.dart';
 import 'package:dojo_partner/screens/home/navigation_screen.dart';
+import 'package:dojo_partner/screens/home/walk_details_screen.dart';
 import 'package:dojo_partner/screens/home/walk_completed_screen.dart';
 
 void main() {
@@ -45,6 +46,36 @@ void main() {
         findsOneWidget,
       );
       expect(find.text('Arrived at Pickup'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'walk details blocks pickup navigation without a booking ID',
+    (tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: WalkDetailsScreen(
+            time: '7:00 AM',
+            dogName: 'Test Dog',
+            type: 'Regular Walk',
+            duration: '30 minutes',
+            location: 'Test pickup',
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('Navigate to Pickup'));
+      await tester.pump();
+
+      expect(
+        find.text(
+          'This walk has no confirmed booking ID. Please contact support before continuing.',
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('Navigate to Pickup'), findsOneWidget);
+      expect(find.text('Confirming Booking...'), findsNothing);
       expect(tester.takeException(), isNull);
     },
   );
