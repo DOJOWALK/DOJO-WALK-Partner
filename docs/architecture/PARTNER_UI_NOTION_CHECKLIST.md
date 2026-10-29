@@ -52,6 +52,7 @@ Draft policies remain draft; this document does not approve business rules.
 - [x] Live Walk neutral surfaces and Partner Profile borders use the shared theme tokens.
 - [x] Pickup navigation prevents progress when the booking ID is missing, shows a support message, and has a regression widget test.
 - [x] Walk Details now blocks pickup navigation when the booking ID is missing or the booking status update fails; the button shows an in-progress state while confirming. Added a widget regression test for the missing-ID case. The first two runs exposed a test-only off-screen ListView action issue; the test now scrolls before tapping. CI runs `40932226817` and `40932267505` completed successfully: Flutter analysis, widget tests, release APK build, and artifact upload all passed. Both runs uploaded `dojo-walk-partner-release-apk` (~43.5 MB; artifacts expire 2026-11-05).
+- [x] Live Walk timer now starts only after the first valid GPS position is accepted, rather than counting time while GPS is still waiting for its first fix. This is a source-level safety improvement; verify the new head in CI and on a physical device before treating it as fully validated.
 - [x] Pickup navigation map placeholder, action panel border, slider surface and slider border use shared theme tokens.
 - [x] Walk Details information notice now uses shared orange-alpha and border tokens instead of one-off hex colors.
 - [x] Walk Completed, Personal Details, Earnings, and Home review/setup prompt accent surfaces now use shared orange-alpha tokens instead of one-off warm hex colors.
