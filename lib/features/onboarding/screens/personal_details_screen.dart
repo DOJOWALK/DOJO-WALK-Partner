@@ -430,13 +430,13 @@ class _PersonalDetailsScreenState
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
         borderSide: const BorderSide(
-          color: Color(0xFFE5E5E5),
+          color: DojoPartnerTheme.border,
         ),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
         borderSide: const BorderSide(
-          color: Color(0xFFE5E5E5),
+          color: DojoPartnerTheme.border,
         ),
       ),
       focusedBorder: OutlineInputBorder(
