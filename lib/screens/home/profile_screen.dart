@@ -319,7 +319,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
-          color: const DojoPartnerTheme.border,
+          color: DojoPartnerTheme.border,
         ),
       ),
       child: Row(
@@ -614,7 +614,7 @@ class _ProfileItem extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(15),
         border: Border.all(
-          color: const DojoPartnerTheme.border,
+          color: DojoPartnerTheme.border,
         ),
       ),
       child: Row(
@@ -673,7 +673,7 @@ class _ActionItem extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: const DojoPartnerTheme.border,
+          color: DojoPartnerTheme.border,
         ),
       ),
       child: ListTile(
