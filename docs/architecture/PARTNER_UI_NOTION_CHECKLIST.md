@@ -101,6 +101,12 @@ Checklist marks mean source review/change only, not test pass or policy approval
 - [ ] Implement and test a trusted Live Walk completion endpoint with authorization and idempotency before release.
 
 
+## Shared Customer / Admin / Partner schema
+- [x] Added `docs/architecture/CROSS_APP_FIRESTORE_SCHEMA_AUDIT.md` using source evidence from Customer booking creation, Admin booking reads/Live Operations, and Partner Live Walk persistence.
+- [x] Recorded a pickup-coordinate contract mismatch risk: Customer booking writer stores the pickup address map, while Partner's return-location lookup currently checks top-level booking coordinate fields.
+- [x] Recorded the separate `walks.route` versus Admin `walk_locations` data-source question and field/unit differences; no app or production schema was changed by the audit.
+- [ ] Confirm canonical address coordinate keys, shared booking status machine, live tracking source, and approved policy requirements before implementation.
+
 ## Backend pre-deployment release gate
 - [x] Added `docs/testing/FIREBASE_BACKEND_PREDEPLOY_CHECKLIST.md` to centralize policy approval, deployed-rules provenance, trusted completion endpoint, Emulator tests, client integration and release evidence gates. This is a checklist only; it does not mean backend implementation or deployment is complete.
 - [ ] Complete each gate with evidence before enabling production Live Walk completion.
