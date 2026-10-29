@@ -497,6 +497,12 @@ class _PartnerHomeScreenState extends State<PartnerHomeScreen> {
     }
   }
 
+  void _showPendingFeatureMessage(String feature) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('$feature will be available in a future update.')),
+    );
+  }
+
   Future<void> _openWorkingSchedule() async {
     await Navigator.push(
       context,
@@ -787,28 +793,31 @@ class _PartnerHomeScreenState extends State<PartnerHomeScreen> {
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(16),
-                        border: Border.all(
-                          color: const Color(0xFFEAEAEA),
-                        ),
+                        border: Border.all(color: DojoPartnerTheme.border),
                       ),
-                      child: const Row(
+                      child: Row(
                         children: [
-                          Icon(Icons.circle, size: 11, color: Colors.green),
-                          SizedBox(width: 10),
+                          Icon(
+                            Icons.calendar_month_outlined,
+                            size: 20,
+                            color: _scheduleSet
+                                ? DojoPartnerTheme.primaryOrange
+                                : DojoPartnerTheme.textSecondary,
+                          ),
+                          const SizedBox(width: 10),
                           Expanded(
                             child: Text(
-                              'Working',
-                              style: TextStyle(
-                                fontSize: 16,
+                              _scheduleSet ? 'Schedule configured' : 'Schedule not set',
+                              style: const TextStyle(
+                                fontSize: 15,
                                 fontWeight: FontWeight.w700,
+                                color: DojoPartnerTheme.textPrimary,
                               ),
                             ),
                           ),
-                          Text(
-                            'Today',
-                            style: TextStyle(
-                              color: DojoPartnerTheme.textSecondary,
-                            ),
+                          TextButton(
+                            onPressed: _openWorkingSchedule,
+                            child: const Text('Manage'),
                           ),
                         ],
                       ),
@@ -892,7 +901,7 @@ class _PartnerHomeScreenState extends State<PartnerHomeScreen> {
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(16),
                       child: InkWell(
-                        onTap: () {},
+                        onTap: () => _showPendingFeatureMessage('Leave requests'),
                         borderRadius: BorderRadius.circular(16),
                         child: Container(
                           padding: const EdgeInsets.all(18),
