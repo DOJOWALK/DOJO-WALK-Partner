@@ -640,7 +640,7 @@ class _PersonalDetailsScreenState
           Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: const Color(0xFFFFF5EB),
+              color: DojoPartnerTheme.primaryOrange.withValues(alpha: 0.06),
               borderRadius: BorderRadius.circular(14),
               border: Border.all(
                 color: DojoPartnerTheme.primaryOrange
