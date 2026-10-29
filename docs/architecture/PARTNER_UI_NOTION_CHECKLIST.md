@@ -41,20 +41,21 @@ Draft policies remain draft; this document does not approve business rules.
 - [x] Home distinguishes booking-query failure from a genuinely empty day, shows a retry action, and avoids displaying zero walk/hour metrics while the query is unavailable.
 - [x] Home no longer claims a fixed “Working” state; it reflects whether a schedule is configured and offers a Manage action.
 - [x] Notification and leave-request placeholder taps now explain that the feature is not available yet instead of doing nothing.
-- [x] Fixed CI-discovered invalid `const DojoPartnerTheme.*` references in Live Walk and Profile; awaiting a fresh analysis run.
+- [x] Fixed CI-discovered invalid `const DojoPartnerTheme.*` references in Live Walk and Profile; the latest PR-head CI run passed analysis, Flutter tests, and release APK build.
 - [x] Earnings screen no longer displays sample balances or fake ledger entries.
 - [x] Working-schedule days default to off until the Partner explicitly selects availability.
 - [x] Placeholder Partner/Walker ID removed from reviewed home/profile UI.
 - [x] Live Walk neutral surfaces and Partner Profile borders use the shared theme tokens.
 - [x] Splash screen background, loading indicator and branding text use shared theme tokens.
-- [x] Theme-token/widget tests were updated and passed in CI run 193 (commit `973db23391fd601cb96fd7a402a3fa34d983bc50`); latest commit still needs its own fresh validation.
+- [x] Theme-token/widget tests passed on PR-head CI run 205 for commit `3d4da0ffb8e162f5b8c217d5ba620792dfa64620`.
 
 ### Not yet verified / remaining
 - [ ] Inspect every authentication and onboarding screen for all visual states, accessibility, responsive layout and consistent spacing; remaining hard-coded semantic/status colors need review.
 - [ ] Verify account status routing against approved POL-025 rules; do not infer verification/activation from UI alone.
 - [ ] Review booking offers, walk start/complete, GPS permissions/freshness, incidents, notifications, profile and support.
-- [ ] Latest commit validation is in progress in GitHub Actions run 202; confirm `flutter analyze`, widget tests and APK build results after it finishes. Integration tests and web/device visual QA remain outstanding.
-- [x] Inspected failed CI run 188: `flutter analyze` found invalid `const DojoPartnerTheme.*` references in Live Walk and Profile. The references were corrected; run 193 then completed analyze and widget tests successfully.
+- [x] GitHub Actions run 205 for commit `3d4da0ffb8e162f5b8c217d5ba620792dfa64620`: Flutter analysis, Flutter tests, release APK build, and APK artifact upload all completed successfully. Artifact: `dojo-walk-partner-release-apk` (about 43.5 MB; expires 2026-11-05). This verifies CI build/test only, not on-device visual QA or Firebase integration.
+- [ ] Integration tests and web/device visual QA remain outstanding.
+- [x] Inspected failed CI run 188: `flutter analyze` found invalid `const DojoPartnerTheme.*` references in Live Walk and Profile. The references were corrected and the latest PR-head run 205 completed analysis, tests, APK build and artifact upload successfully.
 - [ ] Capture device screenshots and compare against the Notion reference.
 - [ ] Firebase integration/security remains a separate phase; no claim of backend validation is made.
 
