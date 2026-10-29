@@ -343,7 +343,7 @@ class _CurrentAddressScreenState
                   width: 56,
                   height: 56,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFFFF0E4),
+                    color: DojoPartnerTheme.primaryOrange.withValues(alpha: 0.10),
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: const Icon(
@@ -423,10 +423,10 @@ class _CurrentAddressScreenState
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFFFF7F0),
+                    color: DojoPartnerTheme.primaryOrange.withValues(alpha: 0.06),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: const Color(0xFFFFDFC4),
+                      color: DojoPartnerTheme.primaryOrange.withValues(alpha: 0.30),
                     ),
                   ),
                   child: CheckboxListTile(
