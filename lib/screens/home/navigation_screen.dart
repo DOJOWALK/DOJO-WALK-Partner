@@ -33,7 +33,16 @@ class _NavigationScreenState extends State<NavigationScreen> {
     final bookingId = widget.bookingId;
 
     if (bookingId == null || bookingId.isEmpty) {
-      return true;
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'This walk has no confirmed booking ID. Please contact support before continuing.',
+            ),
+          ),
+        );
+      }
+      return false;
     }
 
     try {
@@ -160,7 +169,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
           Container(
             width: double.infinity,
             height: double.infinity,
-            color: const Color(0xFFE9E9E9),
+            color: DojoPartnerTheme.background,
             child: const Center(
               child: Icon(
                 Icons.map_outlined,
@@ -181,13 +190,13 @@ class _NavigationScreenState extends State<NavigationScreen> {
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(
-                  color: const Color(0xFFEAEAEA),
+                  color: DojoPartnerTheme.border,
                 ),
               ),
               child: Row(
                 children: [
                   const CircleAvatar(
-                    backgroundColor: Color(0xFFFFF1E8),
+                    backgroundColor: DojoPartnerTheme.primaryOrange.withValues(alpha: 0.10),
                     child: Icon(
                       Icons.pets,
                       color: DojoPartnerTheme.primaryOrange,
