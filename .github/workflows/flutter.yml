@@ -29,6 +29,12 @@ jobs:
           channel: stable
           cache: true
 
+      # Validate the checked-in backend/config files without deploying them.
+      - name: Validate Firebase backend syntax and config
+        run: |
+          node --check functions/index.js
+          node -e "JSON.parse(require('fs').readFileSync('firebase.json', 'utf8'))"
+
       # 3. Install dependencies
       - name: Install dependencies
         run: flutter pub get
