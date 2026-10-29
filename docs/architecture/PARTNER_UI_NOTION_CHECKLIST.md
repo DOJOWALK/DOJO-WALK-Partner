@@ -51,6 +51,7 @@ Draft policies remain draft; this document does not approve business rules.
 - [x] Pickup navigation prevents progress when the booking ID is missing, shows a support message, and has a regression widget test.
 - [x] Pickup navigation map placeholder, action panel border, slider surface and slider border use shared theme tokens.
 - [x] Walk Details information notice now uses shared orange-alpha and border tokens instead of one-off hex colors.
+- [x] Walk Completed, Personal Details, Earnings, and Home review/setup prompt accent surfaces now use shared orange-alpha tokens instead of one-off warm hex colors.
 - [x] Splash screen background, loading indicator and branding text use shared theme tokens.
 - [x] Theme-token/widget tests passed on PR-head CI; later earnings and Walk Details changes were also validated by their completed workflows (see run evidence below).
 
@@ -64,7 +65,8 @@ Draft policies remain draft; this document does not approve business rules.
 - [x] Run `40927504431` for regression-test commit `b7efa959ff5c8e20e8accd6ad23b721c975542a8` completed successfully: Flutter analysis, tests, release APK build and artifact upload passed.
 - [x] Run `40928091894` for Walk Details theme commit `1a4519d0f6218b0f880350297bca46252088ee5b` completed successfully.
 - [x] Checklist update commit `9113d57177b59440460832bf8b4f43dbc785c0ef` workflow run `40928117487` completed successfully, including release APK build and artifact upload.
-- [ ] Latest walk-completion accent-token change commit `c23d996dece2fddd11154e0cf09e4e948ac0ac1b` has workflow run `40929592398` in progress; do not mark this latest code change validated until it completes.
+- [ ] Walk-completion accent-token commit `c23d996dece2fddd11154e0cf09e4e948ac0ac1b` workflow run `40929592398` and checklist/docs follow-up run `40929744136` were still in progress at last check; both have passed analysis and tests, but APK build/upload had not finished.
+- [ ] Latest accent-surface token updates in Personal Details (`7a07ac167ebf084d2add9c8542d675122526a40f`), Home (`018b38ede0be2bc083d4b77794f14a2d488dd370`, formatting follow-up `1bd9e699f88be213ea9924cfd88a71dbf1784e9f`), and Earnings (`bbd0d92f728c04581884783c8fe42599a2d43b12`) have workflow runs queued/in progress; validate latest branch head before marking passed.
 - [ ] Integration tests and web/device visual QA remain outstanding.
 - [x] Inspected failed CI run 188: `flutter analyze` found invalid `const DojoPartnerTheme.*` references in Live Walk and Profile. The references were corrected and the latest PR-head run 205 completed analysis, tests, APK build and artifact upload successfully.
 - [ ] Capture device screenshots and compare against the Notion reference.
