@@ -394,7 +394,7 @@ class _LiveWalkScreenState extends State<LiveWalkScreen> {
   // ------------------------------------------------------------
 
   Future<void> _loadCustomerLocation() async {
-    final bookingId = widget.bookingId;
+    final bookingId = widget.bookingId?.trim();
 
     if (bookingId == null || bookingId.isEmpty) return;
 
@@ -627,7 +627,7 @@ class _LiveWalkScreenState extends State<LiveWalkScreen> {
   // ------------------------------------------------------------
 
   Future<void> _showCustomerOtpSheet() async {
-    final bookingId = widget.bookingId;
+    final bookingId = widget.bookingId?.trim();
 
     if (bookingId == null || bookingId.isEmpty) {
       _showMessage(
@@ -749,9 +749,10 @@ class _LiveWalkScreenState extends State<LiveWalkScreen> {
         'route': _compactRoute(),
       };
 
-      if (widget.bookingId != null &&
-          widget.bookingId!.isNotEmpty) {
-        walkData['bookingId'] = widget.bookingId;
+      final bookingId = widget.bookingId?.trim();
+
+      if (bookingId != null && bookingId.isNotEmpty) {
+        walkData['bookingId'] = bookingId;
       }
 
       if (startedAt != null) {
@@ -773,9 +774,9 @@ class _LiveWalkScreenState extends State<LiveWalkScreen> {
       }
 
       final firestore = FirebaseFirestore.instance;
-      final bookingId = widget.bookingId;
+      final bookingId = widget.bookingId?.trim();
 
-      if (bookingId != null && bookingId.trim().isNotEmpty) {
+      if (bookingId != null && bookingId.isNotEmpty) {
         // Save the walk record and booking completion together so a
         // booking-update failure cannot leave a completed walk record
         // beside a booking that still appears active.
