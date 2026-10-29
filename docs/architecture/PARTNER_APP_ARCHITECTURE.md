@@ -21,7 +21,7 @@ Status: Initial architecture baseline; implementation and tests remain to be ver
 - `lib/main.dart` calls `Firebase.initializeApp()` without explicit generated options in that file. Confirm platform configuration before modifying it.
 - `pubspec.yaml` already declares Firebase Core, Auth, Firestore and Storage packages.
 - Existing feature files use a mixture of `lib/features/... `, `lib/screens/...`, `lib/theme.dart` and direct Firebase SDK calls. Migrate only after mapping imports and responsibilities.
-- Current theme values do not yet match the approved DOJO WALK palette exactly; align theme in a separate, tested UI change.
+- Shared theme tokens have been aligned to the DOJO WALK palette (`#FF7900`, `#FFFAF5`, `#252525`). CI previously failed on an unused splash-screen theme import; the import is now used, but a fresh successful analysis/test/build run is still required.
 
 ## Delivery sequence
 1. Inventory and baseline.
