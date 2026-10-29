@@ -1186,10 +1186,10 @@ class _LiveMapState extends State<_LiveMap> {
       width: double.infinity,
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-        color: const Color(0xFFF1F2F2),
+        color: const DojoPartnerTheme.background,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
-          color: const Color(0xFFE3E3E3),
+          color: const DojoPartnerTheme.border,
         ),
       ),
       child: Stack(
@@ -1314,7 +1314,7 @@ class _MetricCard extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(15),
         border: Border.all(
-          color: const Color(0xFFEAEAEA),
+          color: const DojoPartnerTheme.border,
         ),
       ),
       child: Column(
@@ -1379,7 +1379,7 @@ class _WalkNotesCard extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(15),
         border: Border.all(
-          color: const Color(0xFFEAEAEA),
+          color: const DojoPartnerTheme.border,
         ),
       ),
       child: Column(
@@ -1585,7 +1585,7 @@ class _ReturnCustomerPanel extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
-          color: const Color(0xFFEAEAEA),
+          color: const DojoPartnerTheme.border,
         ),
       ),
       child: Column(
