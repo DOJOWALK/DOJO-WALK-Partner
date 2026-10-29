@@ -44,6 +44,7 @@ Draft policies remain draft; this document does not approve business rules.
 - [x] Fixed CI-discovered invalid `const DojoPartnerTheme.*` references in Live Walk and Profile. Run 210 passed analysis and tests after adding the missing-booking-ID regression test; its APK build was still in progress at last check.
 - [x] Earnings screen no longer displays sample balances or fake ledger entries.
 - [x] Walk completion no longer displays a default ₹0 or an unverified payout amount; it clearly says earnings appear after verification in the Earnings screen.
+- [x] Added a widget regression test to ensure walk completion shows pending verification and not `₹0.00` when no verified payout is supplied.
 - [x] Working-schedule days default to off until the Partner explicitly selects availability.
 - [x] Placeholder Partner/Walker ID removed from reviewed home/profile UI.
 - [x] Live Walk neutral surfaces and Partner Profile borders use the shared theme tokens.
@@ -57,7 +58,8 @@ Draft policies remain draft; this document does not approve business rules.
 - [ ] Verify account status routing against approved POL-025 rules; do not infer verification/activation from UI alone.
 - [ ] Review booking offers, walk start/complete, GPS permissions/freshness, incidents, notifications, profile and support.
 - [x] GitHub Actions run 205 for commit `3d4da0ffb8e162f5b8c217d5ba620792dfa64620`: Flutter analysis, Flutter tests, release APK build, and APK artifact upload all completed successfully. Artifact: `dojo-walk-partner-release-apk` (about 43.5 MB; expires 2026-11-05). This verifies that earlier commit only, not the latest UI edits.
-- [ ] Run 213 (`40926210293`) for app-code commit `110bc7bf005f9b1fe43ed1e1ac60a2c00ae3d3a9` passed analysis and Flutter tests; release APK build was still running at the latest poll, with no artifact uploaded yet. A further change prevents unverified earnings on the completion screen at commit `62bb8da51f1dbc3b51b95d7ac82892896e481f7c`; this newer change still needs CI validation.
+- [ ] - [x] Run 213 (`40926210293`) for app-code commit `110bc7bf005f9b1fe43ed1e1ac60a2c00ae3d3a9` completed successfully: analysis, tests, release APK build and artifact upload passed. Artifact `dojo-walk-partner-release-apk` is about 43.5 MB and expires 2026-11-05.
+- [ ] Later changes at `62bb8da51f1dbc3b51b95d7ac82892896e481f7c` (pending earnings UI), `b7efa959ff5c8e20e8accd6ad23b721c975542a8` (regression test) and `573c5bdbb9e3f3adc5481389fe6c2364c45fbbb9` (this checklist update) have new workflow runs; do not mark these newer changes validated until their runs complete.
 - [ ] Integration tests and web/device visual QA remain outstanding.
 - [x] Inspected failed CI run 188: `flutter analyze` found invalid `const DojoPartnerTheme.*` references in Live Walk and Profile. The references were corrected and the latest PR-head run 205 completed analysis, tests, APK build and artifact upload successfully.
 - [ ] Capture device screenshots and compare against the Notion reference.
