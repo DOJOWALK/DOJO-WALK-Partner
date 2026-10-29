@@ -408,6 +408,7 @@ class _LiveWalkScreenState extends State<LiveWalkScreen> {
 
       if (data == null) return;
 
+      // Prefer legacy top-level coordinates when present.
       final latitude = _readDouble(data['latitude']);
       final longitude = _readDouble(data['longitude']);
 
@@ -417,6 +418,21 @@ class _LiveWalkScreenState extends State<LiveWalkScreen> {
         return;
       }
 
+      // Current Customer booking schema stores the selected pickup as a map.
+      // Keep this fallback for bookings created after the coordinate contract fix.
+      final pickupAddress = data['pickupAddress'];
+      if (pickupAddress is Map) {
+        final pickupLatitude = _readDouble(pickupAddress['latitude']);
+        final pickupLongitude = _readDouble(pickupAddress['longitude']);
+
+        if (_validCoordinates(pickupLatitude, pickupLongitude)) {
+          _customerLatitude = pickupLatitude;
+          _customerLongitude = pickupLongitude;
+          return;
+        }
+      }
+
+      // Legacy fallback: some older booking records may store a GeoPoint.
       final geoPoint = data['location'];
 
       if (geoPoint is GeoPoint &&
