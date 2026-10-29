@@ -316,8 +316,8 @@ class _KycDocumentsScreenState extends State<KycDocumentsScreen> {
                 height: 44,
                 decoration: BoxDecoration(
                   color: isReady
-                      ? const Color(0xFFFFF0E4)
-                      : const Color(0xFFF5F5F5),
+                      ? DojoPartnerTheme.primaryOrange.withValues(alpha: 0.10)
+                      : DojoPartnerTheme.background,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(
@@ -374,7 +374,7 @@ class _KycDocumentsScreenState extends State<KycDocumentsScreen> {
               vertical: 14,
             ),
             decoration: BoxDecoration(
-              color: const Color(0xFFFFF8F2),
+              color: DojoPartnerTheme.primaryOrange.withValues(alpha: 0.04),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Row(
@@ -493,7 +493,7 @@ class _KycDocumentsScreenState extends State<KycDocumentsScreen> {
                             minHeight: 6,
                             color: DojoPartnerTheme.primaryOrange,
                             backgroundColor:
-                                const Color(0xFFEAEAEA),
+                                DojoPartnerTheme.border,
                           ),
                         ),
                       ),
@@ -517,10 +517,10 @@ class _KycDocumentsScreenState extends State<KycDocumentsScreen> {
                   Container(
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFFFF7F0),
+                      color: DojoPartnerTheme.primaryOrange.withValues(alpha: 0.06),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: const Color(0xFFFFDFC4),
+                        color: DojoPartnerTheme.primaryOrange.withValues(alpha: 0.30),
                       ),
                     ),
                     child: const Row(
