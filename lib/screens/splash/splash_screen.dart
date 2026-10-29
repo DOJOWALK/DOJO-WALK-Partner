@@ -40,7 +40,7 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: DojoPartnerTheme.background,
       body: SafeArea(
         child: Stack(
           alignment: Alignment.center,
@@ -56,7 +56,7 @@ class _SplashScreenState extends State<SplashScreen> {
                   return const Icon(
                     Icons.pets,
                     size: 70,
-                    color: Colors.black,
+                    color: DojoPartnerTheme.primaryOrange,
                   );
                 },
               ),
@@ -71,7 +71,7 @@ class _SplashScreenState extends State<SplashScreen> {
                 child: CircularProgressIndicator(
                   strokeWidth: 2,
                   valueColor: AlwaysStoppedAnimation<Color>(
-                    Colors.black,
+                    DojoPartnerTheme.primaryOrange,
                   ),
                 ),
               ),
@@ -84,7 +84,7 @@ class _SplashScreenState extends State<SplashScreen> {
                 TextSpan(
                   style: TextStyle(
                     fontSize: 9,
-                    color: Colors.black45,
+                    color: DojoPartnerTheme.textSecondary,
                     letterSpacing: 0.2,
                   ),
                   children: [
@@ -92,7 +92,7 @@ class _SplashScreenState extends State<SplashScreen> {
                     TextSpan(
                       text: 'DOJO WALK',
                       style: TextStyle(
-                        color: Colors.black54,
+                        color: DojoPartnerTheme.textPrimary,
                         fontWeight: FontWeight.w700,
                         letterSpacing: 0.5,
                       ),
