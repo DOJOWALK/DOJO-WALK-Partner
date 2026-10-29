@@ -361,11 +361,12 @@ class _WalkDetailsScreenState
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: const Color(0xFFFFF9F4),
+                color: DojoPartnerTheme.primaryOrange
+                    .withValues(alpha: 0.06),
                 borderRadius:
                     BorderRadius.circular(14),
                 border: Border.all(
-                  color: const Color(0xFFFFE1C7),
+                  color: DojoPartnerTheme.border,
                 ),
               ),
               child: const Row(
