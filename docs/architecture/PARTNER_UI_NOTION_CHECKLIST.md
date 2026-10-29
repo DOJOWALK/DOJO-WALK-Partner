@@ -51,7 +51,7 @@ Draft policies remain draft; this document does not approve business rules.
 - [x] Placeholder Partner/Walker ID removed from reviewed home/profile UI.
 - [x] Live Walk neutral surfaces and Partner Profile borders use the shared theme tokens.
 - [x] Pickup navigation prevents progress when the booking ID is missing, shows a support message, and has a regression widget test.
-- [x] Walk Details now blocks pickup navigation when the booking ID is missing or the booking status update fails; the button shows an in-progress state while confirming. Added a widget regression test for the missing-ID case. The first test run exposed a test-only off-screen button finder issue; updated the test to ensure the button is visible before tapping. Validation for latest test fix commit `22dc928ec6f3e2fe402de437328a45d88a2307d9` is pending.
+- [x] Walk Details now blocks pickup navigation when the booking ID is missing or the booking status update fails; the button shows an in-progress state while confirming. Added a widget regression test for the missing-ID case. The first two runs exposed a test-only off-screen ListView action issue (the button was not built until scrolled into view). Updated the test to scroll the ListView before tapping; latest test fix commit `c8ca905b77194c60c1a060e0b955ae6afe8f0407` has CI run `40932226817` queued.
 - [x] Pickup navigation map placeholder, action panel border, slider surface and slider border use shared theme tokens.
 - [x] Walk Details information notice now uses shared orange-alpha and border tokens instead of one-off hex colors.
 - [x] Walk Completed, Personal Details, Earnings, and Home review/setup prompt accent surfaces now use shared orange-alpha tokens instead of one-off warm hex colors.
