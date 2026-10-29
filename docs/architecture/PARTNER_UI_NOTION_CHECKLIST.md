@@ -99,3 +99,10 @@ Checklist marks mean source review/change only, not test pass or policy approval
 - [ ] Confirm the actual Firebase project and deployed rules source/command; repository contents do not prove deployment state.
 - [ ] Do not add the current rules to deployment config until the Live Walk authorization and write-schema blockers are fixed and Emulator tests pass.
 - [ ] Implement and test a trusted Live Walk completion endpoint with authorization and idempotency before release.
+
+
+## Live Walk backend contract
+- [x] Defined proposed trusted completion endpoint contract: authenticated walker identity, assignment/status checks, atomic transaction, stable idempotency key, input validation, replay-safe response, and required failure/concurrency tests. Recorded in ADR-005 (commit `0765ef903d9c3eb537d1bc82decef771ac5311b5`).
+- [ ] Validate allowed source booking status and field schema against approved Notion policy before implementation.
+- [ ] Implement callable and replace client-side direct completion batch.
+- [ ] Add emulator tests and verify rules/function deployment configuration; production behavior remains unverified.
