@@ -41,13 +41,16 @@ Draft policies remain draft; this document does not approve business rules.
 - [x] Earnings screen no longer displays sample balances or fake ledger entries.
 - [x] Working-schedule days default to off until the Partner explicitly selects availability.
 - [x] Placeholder Partner/Walker ID removed from reviewed home/profile UI.
+- [x] Live Walk neutral surfaces and Partner Profile borders use the shared theme tokens.
+- [x] Splash screen background, loading indicator and branding text use shared theme tokens.
 - [x] Theme-token/widget tests were updated in source, but have not yet been executed.
 
 ### Not yet verified / remaining
 - [ ] Inspect every authentication and onboarding screen for all visual states, accessibility, responsive layout and consistent spacing; remaining hard-coded semantic/status colors need review.
 - [ ] Verify account status routing against approved POL-025 rules; do not infer verification/activation from UI alone.
 - [ ] Review booking offers, walk start/complete, GPS permissions/freshness, incidents, notifications, profile and support.
-- [ ] Flutter analyze, widget tests, integration tests and web/device build have not been run in this work session.
+- [ ] Latest Flutter analyze, widget tests, integration tests and web/device build must be re-run after the recent commits.
+- [x] Inspected the prior failed CI log: `flutter analyze` stopped on an unused theme import in the splash screen; the import is now used by the splash UI. This fix is not yet confirmed by a fresh successful run.
 - [ ] Capture device screenshots and compare against the Notion reference.
 - [ ] Firebase integration/security remains a separate phase; no claim of backend validation is made.
 
