@@ -764,23 +764,36 @@ class _LiveWalkScreenState extends State<LiveWalkScreen> {
         );
       }
 
-      await FirebaseFirestore.instance
-          .collection('walks')
-          .doc(_walkDocumentId)
-          .set(walkData);
+      final firestore = FirebaseFirestore.instance;
+      final bookingId = widget.bookingId;
 
-      if (widget.bookingId != null &&
-          widget.bookingId!.isNotEmpty) {
-        await FirebaseFirestore.instance
-            .collection('bookings')
-            .doc(widget.bookingId)
-            .update({
-          'status': 'completed',
-          'completedAt': FieldValue.serverTimestamp(),
-          'dogReturned': true,
-          'returnLocationVerified': _sameReturnLocation,
-          'updatedAt': FieldValue.serverTimestamp(),
-        });
+      if (bookingId != null && bookingId.trim().isNotEmpty) {
+        // Save the walk record and booking completion together so a
+        // booking-update failure cannot leave a completed walk record
+        // beside a booking that still appears active.
+        final batch = firestore.batch();
+        batch.set(
+          firestore.collection('walks').doc(_walkDocumentId),
+          walkData,
+        );
+        batch.update(
+          firestore.collection('bookings').doc(bookingId),
+          {
+            'status': 'completed',
+            'completedAt': FieldValue.serverTimestamp(),
+            'dogReturned': true,
+            'returnLocationVerified': _sameReturnLocation,
+            'updatedAt': FieldValue.serverTimestamp(),
+          },
+        );
+        await batch.commit();
+      } else {
+        // Preserve the walk/handover record even if a legacy route lacks
+        // a booking ID; upstream screens should prevent this path.
+        await firestore
+            .collection('walks')
+            .doc(_walkDocumentId)
+            .set(walkData);
       }
 
       if (!mounted) return;
