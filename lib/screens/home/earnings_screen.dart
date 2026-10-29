@@ -113,7 +113,7 @@ class EarningsScreen extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: const Color(0xFFFFF1E5),
+                color: DojoPartnerTheme.primaryOrange.withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(14),
               ),
               child: const Row(
