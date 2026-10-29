@@ -118,3 +118,14 @@ Checklist marks mean source review/change only, not test pass or policy approval
 - [ ] Add emulator tests and verify rules/function deployment configuration; production behavior remains unverified.
 
 - [x] Cross-checked the Live Walk backend contract against Notion POL-006, POL-007 and POL-026. All three source policies are still draft/unapproved, so exact source statuses, evidence schema and exception rules remain blocked pending Founder/CEO approval (ADR-005 update commit `8bf3b051c45216af29f5118a2ca5b2c4ef5e4bdc`).
+
+
+## Booking assignment and shared status gate (2026-10-30)
+- [x] Read Notion POL-005 and POL-026. Both remain Draft/unapproved; offer timeout, candidate ranking, attempt limits, assignment states, and replacement decisions are not approved for production.
+- [x] Read Admin assignment audits Step 199/200. Inspected paths did not identify an authoritative assignment writer; external/manual/unindexed workflows are not ruled out.
+- [x] Confirmed Admin booking filter labels include `Walker Accepted` and `Walk In Progress`, while Partner writes `accepted` and `walking`. Direct equality filtering can hide those bookings; this is an observed UI/schema mismatch, not a proposed status migration.
+- [ ] Map UI labels to a shared canonical status enum only after Founder-approved POL-005/POL-006/POL-026 contract; do not rename persisted statuses ad hoc.
+- [ ] Confirm whether an external/manual assignment process exists before implementing a trusted assignment callable.
+- [ ] If no supported writer exists, implement server-side single-walker offers, atomic acceptance, eligibility/availability checks, idempotency, audit events, and Emulator tests under an approved contract.
+- [ ] Confirm current deployed Firestore rules and deployment repository before treating any checked-in rules as production enforcement.
+- Evidence: Admin Step 199/200 audit documents; Notion POL-005 and POL-026 (Draft at last check).
