@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:dojo_partner/app.dart';
 import 'package:dojo_partner/theme.dart';
 import 'package:dojo_partner/screens/home/navigation_screen.dart';
+import 'package:dojo_partner/screens/home/walk_completed_screen.dart';
 
 void main() {
   test('DOJO WALK brand tokens match the unified Notion UI system', () {
@@ -44,6 +45,32 @@ void main() {
         findsOneWidget,
       );
       expect(find.text('Arrived at Pickup'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'walk completion does not present default zero as verified earnings',
+    (tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: WalkCompletedScreen(
+            dogName: 'Test Dog',
+            walkType: 'Regular Walk',
+            scheduledTime: '7:00 AM',
+            durationSeconds: 1800,
+            distanceKm: 1.2,
+            location: 'Test pickup',
+          ),
+        ),
+      );
+
+      expect(find.text('Pending verification'), findsOneWidget);
+      expect(
+        find.textContaining('Earnings will appear in your Earnings screen'),
+        findsOneWidget,
+      );
+      expect(find.text('₹0.00'), findsNothing);
       expect(tester.takeException(), isNull);
     },
   );
