@@ -195,7 +195,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
               ),
               child: Row(
                 children: [
-                  const CircleAvatar(
+                  CircleAvatar(
                     backgroundColor: DojoPartnerTheme.primaryOrange.withValues(alpha: 0.10),
                     child: Icon(
                       Icons.pets,
