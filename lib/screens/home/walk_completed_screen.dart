@@ -122,7 +122,7 @@ class WalkCompletedScreen extends StatelessWidget {
                                 width: 48,
                                 height: 48,
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFFFFF1E8),
+                                  color: DojoPartnerTheme.primaryOrange.withValues(alpha: 0.10),
                                   borderRadius:
                                       BorderRadius.circular(14),
                                 ),
