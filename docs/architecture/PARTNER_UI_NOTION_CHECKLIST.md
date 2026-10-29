@@ -47,14 +47,14 @@ Draft policies remain draft; this document does not approve business rules.
 - [x] Placeholder Partner/Walker ID removed from reviewed home/profile UI.
 - [x] Live Walk neutral surfaces and Partner Profile borders use the shared theme tokens.
 - [x] Splash screen background, loading indicator and branding text use shared theme tokens.
-- [x] Theme-token/widget tests were updated in source, but have not yet been executed.
+- [x] Theme-token/widget tests were updated and passed in CI run 193 (commit `973db23391fd601cb96fd7a402a3fa34d983bc50`); latest commit still needs its own fresh validation.
 
 ### Not yet verified / remaining
 - [ ] Inspect every authentication and onboarding screen for all visual states, accessibility, responsive layout and consistent spacing; remaining hard-coded semantic/status colors need review.
 - [ ] Verify account status routing against approved POL-025 rules; do not infer verification/activation from UI alone.
 - [ ] Review booking offers, walk start/complete, GPS permissions/freshness, incidents, notifications, profile and support.
-- [ ] Latest Flutter analyze, widget tests, integration tests and web/device build must be re-run after the recent commits.
-- [x] Inspected the prior failed CI log: `flutter analyze` stopped on an unused theme import in the splash screen; the import is now used by the splash UI. This fix is not yet confirmed by a fresh successful run.
+- [ ] Latest commit validation is in progress in GitHub Actions run 202; confirm `flutter analyze`, widget tests and APK build results after it finishes. Integration tests and web/device visual QA remain outstanding.
+- [x] Inspected failed CI run 188: `flutter analyze` found invalid `const DojoPartnerTheme.*` references in Live Walk and Profile. The references were corrected; run 193 then completed analyze and widget tests successfully.
 - [ ] Capture device screenshots and compare against the Notion reference.
 - [ ] Firebase integration/security remains a separate phase; no claim of backend validation is made.
 
