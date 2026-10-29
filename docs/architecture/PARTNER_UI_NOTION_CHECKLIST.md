@@ -38,6 +38,7 @@ Draft policies remain draft; this document does not approve business rules.
 - [x] Account-check screen uses shared background/border tokens for reviewed neutral surfaces.
 - [x] Work-location, KYC document, live-selfie, current-address, review-submit and application-submitted screens use shared background/border tokens for reviewed neutral surfaces.
 - [x] Schedule screen no longer fabricates booking cards; it explains that confirmed walks appear when available.
+- [x] Home distinguishes booking-query failure from a genuinely empty day, shows a retry action, and avoids displaying zero walk/hour metrics while the query is unavailable.
 - [x] Earnings screen no longer displays sample balances or fake ledger entries.
 - [x] Working-schedule days default to off until the Partner explicitly selects availability.
 - [x] Placeholder Partner/Walker ID removed from reviewed home/profile UI.
