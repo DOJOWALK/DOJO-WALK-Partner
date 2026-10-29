@@ -107,15 +107,13 @@ class _LiveWalkScreenState extends State<LiveWalkScreen> {
 
       if (!mounted) return;
 
-      _startedAt ??= DateTime.now();
-
       setState(() {
         _isStarting = false;
         _locationTracking = false;
       });
 
-      _startTimer();
-      await _startLocationStream();
+      // Do not count walk duration until a valid GPS fix is received.
+      // The first accepted position starts both the route and timer.
     } catch (_) {
       if (!mounted) return;
 
@@ -353,8 +351,11 @@ class _LiveWalkScreenState extends State<LiveWalkScreen> {
       _startPosition = position;
       _lastPosition = position;
       _route.add(position);
+      _startedAt ??= DateTime.now();
+      _startTimer();
 
       setState(() {
+        _isStarting = false;
         _locationTracking = true;
       });
       return;
