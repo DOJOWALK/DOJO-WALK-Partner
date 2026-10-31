@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../../../theme.dart';
+import '../../account/account_status_presentation.dart';
 import '../../support/create_partner_support_request.dart';
 
 const Color _orange = DojoPartnerTheme.primaryOrange;
@@ -414,28 +415,48 @@ class _ApplicationSubmittedScreenState
 
           final data = snapshot.data?.data() ?? {};
 
-          final rawStatus = (data['status'] ?? 'under_review')
-              .toString()
-              .toLowerCase();
+          final accountPresentation =
+              AccountStatusPresentation.fromData(data);
+          final accountStatus = accountPresentation.label;
+          final isApprovedAndActive = accountStatus == 'Approved & active';
+          final isRejected =
+              accountStatus == 'Application not approved';
+          final isCorrectionRequired =
+              accountStatus == 'Correction required';
+          final isTerminalOrRestricted = {
+            'Application not approved',
+            'Correction required',
+            'Account suspended',
+            'Account closed',
+            'Account inactive',
+            'Account status needs review — contact support',
+          }.contains(accountStatus);
+          final showApplicationProgress = !isTerminalOrRestricted &&
+              accountStatus != 'Approved & active';
 
-          final isApproved = data['isApproved'] == true;
-          final isActive = data['isActive'] == true;
-
-          final statusLabel = isApproved && isActive
-              ? 'APPROVED'
-              : rawStatus == 'rejected'
-                  ? 'REJECTED'
-                  : 'UNDER REVIEW';
-
-          final statusMessage = isApproved && isActive
-              ? 'Your account is approved and activated. You can '
-                  'continue to the Partner Home when your app allows it.'
-              : rawStatus == 'rejected'
-                  ? 'Your application needs attention. Please contact '
-                      'support for the next steps.'
-                  : 'Our team is reviewing your details and documents. '
-                      'We will update your application status when '
-                      'verification is complete.';
+          final statusLabel = accountStatus.toUpperCase();
+          final statusMessage = switch (accountStatus) {
+            'Approved & active' =>
+              'Your account is approved and activated. Access to Partner Home is controlled by the account check.',
+            'Application not approved' =>
+              'Your application was not approved. Please contact DOJO Support for the next steps.',
+            'Correction required' =>
+              'Your application needs corrections. Please contact DOJO Support for the required next steps.',
+            'Account suspended' =>
+              'Your Partner account is suspended. Please contact DOJO Support for assistance.',
+            'Account closed' =>
+              'This Partner account is closed. Please contact DOJO Support if you believe this is incorrect.',
+            'Account inactive' =>
+              'Your account is not active. Please contact DOJO Support for assistance.',
+            'Verification in review' =>
+              'Our team is reviewing your details and documents. We will update your application status when verification is complete.',
+            'Verification pending' =>
+              'Your verification is pending. Please check again later for an update.',
+            'Application in progress' =>
+              'Your application is still in progress. Complete any outstanding onboarding steps.',
+            _ =>
+              'Your account status could not be confirmed. Please contact DOJO Support.',
+          };
 
           return SafeArea(
             child: ListView(
@@ -467,10 +488,24 @@ class _ApplicationSubmittedScreenState
 
                 const SizedBox(height: 22),
 
-                const Text(
-                  'Application Submitted',
+                Text(
+                  isApprovedAndActive
+                      ? 'Account Approved'
+                      : isRejected
+                          ? 'Application Not Approved'
+                          : isCorrectionRequired
+                              ? 'Correction Required'
+                              : accountStatus == 'Account suspended'
+                                  ? 'Account Suspended'
+                                  : accountStatus == 'Account closed'
+                                      ? 'Account Closed'
+                                      : accountStatus == 'Account inactive'
+                                          ? 'Account Inactive'
+                                          : accountStatus == 'Status unavailable'
+                                              ? 'Status Unavailable'
+                                              : 'Application Status',
                   textAlign: TextAlign.center,
-                  style: TextStyle(
+                  style: const TextStyle(
                     color: _text,
                     fontSize: 25,
                     fontWeight: FontWeight.w900,
@@ -480,27 +515,31 @@ class _ApplicationSubmittedScreenState
 
                 const SizedBox(height: 10),
 
-                const Text(
-                  'Your application has been successfully submitted.',
+                Text(
+                  statusMessage,
                   textAlign: TextAlign.center,
-                  style: TextStyle(
+                  style: const TextStyle(
                     color: _muted,
                     fontSize: 14,
                     height: 1.6,
                   ),
                 ),
 
-                const SizedBox(height: 28),
-
-                _progressCard(),
-
-                const SizedBox(height: 20),
+                if (showApplicationProgress) ...[
+                  const SizedBox(height: 28),
+                  _progressCard(),
+                  const SizedBox(height: 20),
+                ] else
+                  const SizedBox(height: 20),
 
                 _statusCard(
                   statusLabel: statusLabel,
                   statusMessage: statusMessage,
-                  rejected: rawStatus == 'rejected',
-                  approved: isApproved && isActive,
+                  rejected: isRejected || isCorrectionRequired ||
+                      accountStatus == 'Account suspended' ||
+                      accountStatus == 'Account closed' ||
+                      accountStatus == 'Account inactive',
+                  approved: isApprovedAndActive,
                 ),
 
                 const SizedBox(height: 16),
