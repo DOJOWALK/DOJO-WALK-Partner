@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../../../theme.dart';
+import '../../support/create_partner_support_request.dart';
 
 const Color _orange = DojoPartnerTheme.primaryOrange;
 const Color _background = DojoPartnerTheme.background;
@@ -227,19 +228,11 @@ class _ApplicationSubmittedScreenState
                           setDialogState(() => sending = true);
 
                           try {
-                            await FirebaseFirestore.instance
-                                .collection('support_requests')
-                                .add({
-                              'userId': user.uid,
-                              'walkerId': user.uid,
-                              'category': categoryController.value,
-                              'message': message,
-                              'status': 'open',
-                              'createdAt':
-                                  FieldValue.serverTimestamp(),
-                              'updatedAt':
-                                  FieldValue.serverTimestamp(),
-                            });
+                            await createPartnerSupportRequest(
+                              userId: user.uid,
+                              category: categoryController.value,
+                              message: message,
+                            );
 
                             if (!dialogContext.mounted) return;
 
