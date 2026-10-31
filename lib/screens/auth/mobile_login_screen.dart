@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../../theme.dart';
 import 'otp_screen.dart';
+import 'account_check_screen.dart';
 
 class MobileLoginScreen extends StatefulWidget {
   const MobileLoginScreen({super.key});
@@ -16,6 +17,7 @@ class _MobileLoginScreenState extends State<MobileLoginScreen> {
   final _phoneController = TextEditingController();
 
   bool _isLoading = false;
+  bool _autoVerificationCompleted = false;
 
   @override
   void dispose() {
@@ -42,17 +44,15 @@ class _MobileLoginScreenState extends State<MobileLoginScreen> {
         verificationCompleted: (PhoneAuthCredential credential) async {
           try {
             await FirebaseAuth.instance.signInWithCredential(credential);
+            _autoVerificationCompleted = true;
 
             if (!mounted) return;
 
-            setState(() {
-              _isLoading = false;
-            });
-
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Mobile number verified successfully.'),
+            Navigator.of(context).pushAndRemoveUntil(
+              MaterialPageRoute<void>(
+                builder: (_) => AccountCheckScreen(phoneNumber: phone),
               ),
+              (route) => false,
             );
           } on FirebaseAuthException catch (e) {
             if (!mounted) return;
@@ -94,7 +94,7 @@ class _MobileLoginScreenState extends State<MobileLoginScreen> {
         },
 
         codeSent: (String verificationId, int? resendToken) {
-          if (!mounted) return;
+          if (!mounted || _autoVerificationCompleted) return;
 
           setState(() {
             _isLoading = false;
