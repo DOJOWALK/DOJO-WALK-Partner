@@ -325,9 +325,6 @@ class _WorkingScheduleScreenState
                     onPressed: _saveSchedule,
                     child: const Text('Schedule saving unavailable'),
                   ),
-                          )
-                        : const Text('Save Working Schedule'),
-                  ),
                 ],
               ),
             ),
