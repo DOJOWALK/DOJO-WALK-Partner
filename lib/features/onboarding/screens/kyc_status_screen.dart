@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../../../theme.dart';
+import '../../account/account_status_presentation.dart';
 
 class KycStatusScreen extends StatefulWidget {
   const KycStatusScreen({super.key});
@@ -80,22 +81,9 @@ class _KycStatusScreenState extends State<KycStatusScreen> {
   }
 
   String _accountStatus() {
-    final status = (_walker?['status'] ?? '').toString().toLowerCase();
-    final approved = _walker?['isApproved'] == true;
-    final active = _walker?['isActive'] == true;
-
-    if (approved && active && status == 'approved') return 'Approved & active';
-    if (status == 'correction_required') return 'Correction required';
-    if (status == 'rejected') return 'Application not approved';
-    if (status == 'suspended' || status == 'left' || (approved && !active)) {
-      return 'Account inactive';
-    }
-    if (status == 'under_review' || _walker?['applicationSubmitted'] == true) {
-      return 'Under review';
-    }
-    if (status == 'in_progress') return 'Application in progress';
-    if (status.isEmpty) return 'Status unavailable';
-    return status.replaceAll('_', ' ');
+    return AccountStatusPresentation.fromData(
+      _walker ?? <String, dynamic>{},
+    ).label;
   }
 
   String _documentState(String key) {
@@ -211,17 +199,23 @@ class _KycStatusScreenState extends State<KycStatusScreen> {
   Widget _statusCard() {
     final status = _accountStatus();
     final approved = status == 'Approved & active';
-    final correction = status == 'Correction required' ||
-        status == 'Application not approved';
+    final restricted = {
+      'Correction required',
+      'Application not approved',
+      'Account suspended',
+      'Account closed',
+      'Account inactive',
+      'Account status needs review — contact support',
+    }.contains(status);
 
     final foreground = approved
         ? const Color(0xFF237A3B)
-        : correction
+        : restricted
             ? const Color(0xFFB3261E)
             : const Color(0xFF9A5700);
     final background = approved
         ? const Color(0xFFEAF8EE)
-        : correction
+        : restricted
             ? const Color(0xFFFCE8E6)
             : const Color(0xFFFFF3E0);
 
