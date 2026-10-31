@@ -26,8 +26,8 @@ void main() {
 
   testWidgets('shows walk details and partner-entered activity notes',
       (tester) async {
-    await tester.view.setPhysicalSize(const Size(430, 1000));
-    await tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(430, 1000));
+    tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
 
@@ -56,8 +56,8 @@ void main() {
 
   testWidgets('does not present duration or distance as verified without GPS',
       (tester) async {
-    await tester.view.setPhysicalSize(const Size(430, 1000));
-    await tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(430, 1000));
+    tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
 
@@ -77,8 +77,8 @@ void main() {
 
   testWidgets('handles invalid distance values without formatting crashes',
       (tester) async {
-    await tester.view.setPhysicalSize(const Size(430, 1000));
-    await tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(430, 1000));
+    tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
 
