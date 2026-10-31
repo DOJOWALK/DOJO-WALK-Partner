@@ -22,6 +22,23 @@ void main() {
     expect(theme.colorScheme.primary, isNotNull);
   });
 
+  test('premium inputs and buttons keep the approved 16px treatment', () {
+    final theme = DojoPartnerTheme.light();
+
+    final inputBorder = theme.inputDecorationTheme.border;
+    expect(inputBorder, isA<OutlineInputBorder>());
+    expect(
+      (inputBorder! as OutlineInputBorder).borderRadius,
+      BorderRadius.circular(16),
+    );
+
+    final buttonStyle = theme.elevatedButtonTheme.style!;
+    expect(buttonStyle.elevation!.resolve(<WidgetState>{}), 3);
+    final buttonShape =
+        buttonStyle.shape!.resolve(<WidgetState>{}) as RoundedRectangleBorder;
+    expect(buttonShape.borderRadius, BorderRadius.circular(16));
+  });
+
   testWidgets(
     'navigation does not confirm pickup when booking ID is missing',
     (tester) async {
