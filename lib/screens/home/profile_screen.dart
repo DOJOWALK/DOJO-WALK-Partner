@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../../theme.dart';
+import '../../features/account/account_status_presentation.dart';
 import '../auth/mobile_login_screen.dart';
 import '../../features/onboarding/screens/kyc_status_screen.dart';
 import 'partner_support_screen.dart';
@@ -94,7 +95,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
           _service = serviceName;
           _rating = ratingText;
-          _verificationLabel = _verificationLabelFor(data);
+          _verificationLabel = AccountStatusPresentation.fromData(data).label;
 
           _phone = _readString(
             data['phone'],
@@ -559,27 +560,6 @@ class _SectionTitle extends StatelessWidget {
       ),
     );
   }
-}
-
-String _verificationLabelFor(Map<String, dynamic> data) {
-  final status = (data['status'] ?? '').toString().trim().toLowerCase();
-  final isApproved = data['isApproved'] == true;
-  final isActive = data['isActive'] == true;
-
-  if (isApproved && isActive && status == 'approved') {
-    return 'Verified Partner';
-  }
-  if (status == 'suspended' || status == 'disabled' ||
-      (isApproved && !isActive)) {
-    return 'Account inactive';
-  }
-  if (status == 'rejected') {
-    return 'Application not approved';
-  }
-  if (status == 'under_review' || data['applicationSubmitted'] == true) {
-    return 'Verification in review';
-  }
-  return 'Verification pending';
 }
 
 class _VerificationBadge extends StatelessWidget {
