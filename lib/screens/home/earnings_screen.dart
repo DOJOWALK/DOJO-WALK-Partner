@@ -11,35 +11,28 @@ class EarningsScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text(
           'Earnings',
-          style: TextStyle(
-            fontWeight: FontWeight.w800,
-          ),
+          style: TextStyle(fontWeight: FontWeight.w800),
         ),
       ),
       body: SafeArea(
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
           children: [
-            const Text(
-              'Your Earnings',
-              style: TextStyle(
-                fontSize: 26,
-                fontWeight: FontWeight.w900,
-                color: DojoPartnerTheme.textPrimary,
-              ),
+            Text(
+              'Your earnings',
+              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    color: DojoPartnerTheme.textPrimary,
+                  ),
             ),
             const SizedBox(height: 6),
-            const Text(
-              'Track your completed walks and earnings.',
-              style: TextStyle(
-                fontSize: 14,
-                color: DojoPartnerTheme.textSecondary,
-              ),
+            Text(
+              'Review verified walk earnings and payout status.',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: DojoPartnerTheme.textSecondary,
+                  ),
             ),
-
-            const SizedBox(height: 24),
-
-            // Total balance
+            const SizedBox(height: 22),
             Container(
               padding: const EdgeInsets.all(22),
               decoration: BoxDecoration(
@@ -50,139 +43,92 @@ class EarningsScreen extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'AVAILABLE EARNINGS',
+                    'EARNINGS SUMMARY',
                     style: TextStyle(
-                      color: Colors.white70,
+                      color: Colors.white,
                       fontSize: 12,
                       fontWeight: FontWeight.w800,
-                      letterSpacing: 0.8,
+                      letterSpacing: 0.7,
+                    ),
+                  ),
+                  SizedBox(height: 10),
+                  Text(
+                    'Awaiting verified records',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 22,
+                      fontWeight: FontWeight.w800,
                     ),
                   ),
                   SizedBox(height: 8),
                   Text(
-                    '₹1,240',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 34,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                  SizedBox(height: 6),
-                  Text(
-                    'Ready for payout',
+                    'Amounts will appear when the trusted earnings ledger is connected. No sample balance is shown.',
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 13,
+                      height: 1.45,
                     ),
                   ),
                 ],
               ),
             ),
-
-            const SizedBox(height: 20),
-
-            Row(
-              children: [
-                Expanded(
-                  child: _EarningCard(
-                    title: 'Today',
-                    amount: '₹120',
-                    icon: Icons.today_outlined,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _EarningCard(
-                    title: 'This Week',
-                    amount: '₹720',
-                    icon: Icons.date_range_outlined,
-                  ),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 12),
-
-            Row(
-              children: [
-                Expanded(
-                  child: _EarningCard(
-                    title: 'This Month',
-                    amount: '₹1,240',
-                    icon: Icons.calendar_month_outlined,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _EarningCard(
-                    title: 'Walks',
-                    amount: '12',
-                    icon: Icons.pets_outlined,
-                  ),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 28),
-
-            const Text(
-              'RECENT EARNINGS',
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w800,
-                letterSpacing: 0.8,
-                color: DojoPartnerTheme.textSecondary,
-              ),
-            ),
-
-            const SizedBox(height: 12),
-
-            _TransactionCard(
-              dogName: 'Bruno',
-              type: 'Regular Walk',
-              date: 'Today • 07:00 AM',
-              amount: '₹120',
-            ),
-
-            const SizedBox(height: 10),
-
-            _TransactionCard(
-              dogName: 'Bruno',
-              type: 'Regular Walk',
-              date: 'Yesterday • 06:00 PM',
-              amount: '₹120',
-            ),
-
-            const SizedBox(height: 10),
-
-            _TransactionCard(
-              dogName: 'Max',
-              type: 'One-Time Walk',
-              date: 'Yesterday • 10:30 AM',
-              amount: '₹150',
-            ),
-
-            const SizedBox(height: 24),
-
+            const SizedBox(height: 18),
             Container(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(18),
               decoration: BoxDecoration(
-                color: const Color(0xFFFFF7F0),
+                color: Colors.white,
                 borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: DojoPartnerTheme.border),
               ),
-              child: const Row(
+              child: const Column(
                 children: [
                   Icon(
-                    Icons.info_outline,
+                    Icons.receipt_long_outlined,
+                    size: 38,
                     color: DojoPartnerTheme.primaryOrange,
                   ),
-                  SizedBox(width: 12),
+                  SizedBox(height: 12),
+                  Text(
+                    'No verified earnings to display',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
+                      color: DojoPartnerTheme.textPrimary,
+                    ),
+                  ),
+                  SizedBox(height: 8),
+                  Text(
+                    'Completed walks, adjustments and payouts must come from verified records. Customer payments and walker earnings are tracked separately.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: DojoPartnerTheme.textSecondary,
+                      height: 1.45,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 18),
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: DojoPartnerTheme.primaryOrange.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: const Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(Icons.shield_outlined,
+                      color: DojoPartnerTheme.primaryOrange),
+                  SizedBox(width: 10),
                   Expanded(
                     child: Text(
-                      'Earnings are added after a walk is successfully completed.',
+                      'Earnings and payout figures must be calculated from trusted, auditable records. Payout timing and rates must follow approved Notion policy, not UI assumptions.',
                       style: TextStyle(
-                        fontSize: 12,
-                        color: DojoPartnerTheme.textSecondary,
+                        color: DojoPartnerTheme.textPrimary,
+                        fontSize: 13,
+                        height: 1.4,
                       ),
                     ),
                   ),
@@ -191,133 +137,6 @@ class EarningsScreen extends StatelessWidget {
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-class _EarningCard extends StatelessWidget {
-  const _EarningCard({
-    required this.title,
-    required this.amount,
-    required this.icon,
-  });
-
-  final String title;
-  final String amount;
-  final IconData icon;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: const Color(0xFFEAEAEA),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(
-            icon,
-            size: 22,
-            color: DojoPartnerTheme.primaryOrange,
-          ),
-          const SizedBox(height: 12),
-          Text(
-            amount,
-            style: const TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.w900,
-            ),
-          ),
-          const SizedBox(height: 3),
-          Text(
-            title,
-            style: const TextStyle(
-              fontSize: 12,
-              color: DojoPartnerTheme.textSecondary,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _TransactionCard extends StatelessWidget {
-  const _TransactionCard({
-    required this.dogName,
-    required this.type,
-    required this.date,
-    required this.amount,
-  });
-
-  final String dogName;
-  final String type;
-  final String date;
-  final String amount;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: const Color(0xFFEAEAEA),
-        ),
-      ),
-      child: Row(
-        children: [
-          const CircleAvatar(
-            radius: 23,
-            child: Icon(Icons.pets),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  dogName,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  type,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: DojoPartnerTheme.textSecondary,
-                  ),
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  date,
-                  style: const TextStyle(
-                    fontSize: 11,
-                    color: DojoPartnerTheme.textSecondary,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Text(
-            '+$amount',
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w900,
-              color: Colors.green,
-            ),
-          ),
-        ],
       ),
     );
   }

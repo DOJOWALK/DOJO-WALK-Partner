@@ -11,6 +11,7 @@ import '../../../theme.dart';
 import '../../../screens/home/customer_otp_sheet.dart';
 import '../../../screens/home/walk_summary_screen.dart';
 
+import '../models/pickup_coordinates.dart';
 import '../services/location_permission_service.dart';
 
 class LiveWalkScreen extends StatefulWidget {
@@ -107,14 +108,13 @@ class _LiveWalkScreenState extends State<LiveWalkScreen> {
 
       if (!mounted) return;
 
-      _startedAt ??= DateTime.now();
-
       setState(() {
         _isStarting = false;
         _locationTracking = false;
       });
 
-      _startTimer();
+      // Do not count walk duration until a valid GPS fix is received.
+      // The first accepted position starts both the route and timer.
       await _startLocationStream();
     } catch (_) {
       if (!mounted) return;
@@ -353,8 +353,11 @@ class _LiveWalkScreenState extends State<LiveWalkScreen> {
       _startPosition = position;
       _lastPosition = position;
       _route.add(position);
+      _startedAt ??= DateTime.now();
+      _startTimer();
 
       setState(() {
+        _isStarting = false;
         _locationTracking = true;
       });
       return;
@@ -392,7 +395,7 @@ class _LiveWalkScreenState extends State<LiveWalkScreen> {
   // ------------------------------------------------------------
 
   Future<void> _loadCustomerLocation() async {
-    final bookingId = widget.bookingId;
+    final bookingId = widget.bookingId?.trim();
 
     if (bookingId == null || bookingId.isEmpty) return;
 
@@ -406,6 +409,7 @@ class _LiveWalkScreenState extends State<LiveWalkScreen> {
 
       if (data == null) return;
 
+      // Prefer legacy top-level coordinates when present.
       final latitude = _readDouble(data['latitude']);
       final longitude = _readDouble(data['longitude']);
 
@@ -415,6 +419,20 @@ class _LiveWalkScreenState extends State<LiveWalkScreen> {
         return;
       }
 
+      // Current Customer booking schema stores the selected pickup as a map.
+      // Keep this fallback for bookings created after the coordinate contract fix.
+      final pickupAddress = data['pickupAddress'];
+      if (pickupAddress is Map) {
+        final pickupCoordinates = readPickupCoordinates(pickupAddress);
+
+        if (pickupCoordinates != null) {
+          _customerLatitude = pickupCoordinates.latitude;
+          _customerLongitude = pickupCoordinates.longitude;
+          return;
+        }
+      }
+
+      // Legacy fallback: some older booking records may store a GeoPoint.
       final geoPoint = data['location'];
 
       if (geoPoint is GeoPoint &&
@@ -542,9 +560,16 @@ class _LiveWalkScreenState extends State<LiveWalkScreen> {
 
       if (!mounted) return;
 
-      if (!currentPosition.accuracy.isFinite ||
-          currentPosition.accuracy > 35) {
-        throw Exception('GPS accuracy is too low.');
+      if (!currentPosition.latitude.isFinite ||
+          !currentPosition.longitude.isFinite ||
+          !currentPosition.accuracy.isFinite ||
+          currentPosition.accuracy < 0 ||
+          currentPosition.accuracy > 35 ||
+          currentPosition.latitude < -90 ||
+          currentPosition.latitude > 90 ||
+          currentPosition.longitude < -180 ||
+          currentPosition.longitude > 180) {
+        throw Exception('GPS position is invalid or too inaccurate.');
       }
 
       _lastPosition = currentPosition;
@@ -618,7 +643,7 @@ class _LiveWalkScreenState extends State<LiveWalkScreen> {
   // ------------------------------------------------------------
 
   Future<void> _showCustomerOtpSheet() async {
-    final bookingId = widget.bookingId;
+    final bookingId = widget.bookingId?.trim();
 
     if (bookingId == null || bookingId.isEmpty) {
       _showMessage(
@@ -713,11 +738,16 @@ class _LiveWalkScreenState extends State<LiveWalkScreen> {
     _positionSubscription = null;
 
     try {
-      final startedAt = _startedAt ?? DateTime.now();
+      // Do not invent a start timestamp when GPS never produced a
+      // valid first fix. The walk can still be recorded after the
+      // required return/OTP flow, but its start time remains unverified.
+      final startedAt = _startedAt;
       final endedAt = DateTime.now();
 
       final walkData = <String, dynamic>{
         'walkerId': user.uid,
+        'startTimeVerified': startedAt != null,
+        'gpsTrackingStarted': _startPosition != null,
         'dogName': widget.dogName,
         'walkType': 'Regular Walk',
         'scheduledTime': widget.time,
@@ -726,7 +756,6 @@ class _LiveWalkScreenState extends State<LiveWalkScreen> {
         'location': widget.location,
         'peeCount': _peeCount,
         'poopCount': _poopCount,
-        'startedAt': Timestamp.fromDate(startedAt),
         'endedAt': Timestamp.fromDate(endedAt),
         'status': 'completed',
         'dogReturned': true,
@@ -736,9 +765,14 @@ class _LiveWalkScreenState extends State<LiveWalkScreen> {
         'route': _compactRoute(),
       };
 
-      if (widget.bookingId != null &&
-          widget.bookingId!.isNotEmpty) {
-        walkData['bookingId'] = widget.bookingId;
+      final bookingId = widget.bookingId?.trim();
+
+      if (bookingId != null && bookingId.isNotEmpty) {
+        walkData['bookingId'] = bookingId;
+      }
+
+      if (startedAt != null) {
+        walkData['startedAt'] = Timestamp.fromDate(startedAt);
       }
 
       if (_startPosition != null) {
@@ -755,23 +789,35 @@ class _LiveWalkScreenState extends State<LiveWalkScreen> {
         );
       }
 
-      await FirebaseFirestore.instance
-          .collection('walks')
-          .doc(_walkDocumentId)
-          .set(walkData);
+      final firestore = FirebaseFirestore.instance;
 
-      if (widget.bookingId != null &&
-          widget.bookingId!.isNotEmpty) {
-        await FirebaseFirestore.instance
-            .collection('bookings')
-            .doc(widget.bookingId)
-            .update({
-          'status': 'completed',
-          'completedAt': FieldValue.serverTimestamp(),
-          'dogReturned': true,
-          'returnLocationVerified': _sameReturnLocation,
-          'updatedAt': FieldValue.serverTimestamp(),
-        });
+      if (bookingId != null && bookingId.isNotEmpty) {
+        // Save the walk record and booking completion together so a
+        // booking-update failure cannot leave a completed walk record
+        // beside a booking that still appears active.
+        final batch = firestore.batch();
+        batch.set(
+          firestore.collection('walks').doc(_walkDocumentId),
+          walkData,
+        );
+        batch.update(
+          firestore.collection('bookings').doc(bookingId),
+          {
+            'status': 'completed',
+            'completedAt': FieldValue.serverTimestamp(),
+            'dogReturned': true,
+            'returnLocationVerified': _sameReturnLocation,
+            'updatedAt': FieldValue.serverTimestamp(),
+          },
+        );
+        await batch.commit();
+      } else {
+        // Preserve the walk/handover record even if a legacy route lacks
+        // a booking ID; upstream screens should prevent this path.
+        await firestore
+            .collection('walks')
+            .doc(_walkDocumentId)
+            .set(walkData);
       }
 
       if (!mounted) return;
@@ -788,6 +834,7 @@ class _LiveWalkScreenState extends State<LiveWalkScreen> {
             location: widget.location,
             peeCount: _peeCount,
             poopCount: _poopCount,
+            gpsTrackingRecorded: _startedAt != null && _startPosition != null,
           ),
         ),
       );
@@ -798,7 +845,12 @@ class _LiveWalkScreenState extends State<LiveWalkScreen> {
         _isEnding = false;
       });
 
-      _startTimer();
+      // A failed save must not start counting a walk that never received
+      // its first valid GPS fix. If tracking had already started, resume
+      // the elapsed-time counter while the Partner retries the save.
+      if (_startedAt != null) {
+        _startTimer();
+      }
 
       try {
         await _startLocationStream();
@@ -1186,10 +1238,10 @@ class _LiveMapState extends State<_LiveMap> {
       width: double.infinity,
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-        color: const Color(0xFFF1F2F2),
+        color: DojoPartnerTheme.background,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
-          color: const Color(0xFFE3E3E3),
+          color: const Color(0xFFFFE1C8),
         ),
       ),
       child: Stack(
@@ -1314,7 +1366,7 @@ class _MetricCard extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(15),
         border: Border.all(
-          color: const Color(0xFFEAEAEA),
+          color: const Color(0xFFFFE1C8),
         ),
       ),
       child: Column(
@@ -1379,7 +1431,7 @@ class _WalkNotesCard extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(15),
         border: Border.all(
-          color: const Color(0xFFEAEAEA),
+          color: const Color(0xFFFFE1C8),
         ),
       ),
       child: Column(
@@ -1445,7 +1497,7 @@ class _NoteControl extends StatelessWidget {
         vertical: 8,
       ),
       decoration: BoxDecoration(
-        color: const Color(0xFFF8F8F8),
+        color: const Color(0xFFFFFAF5),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
@@ -1585,7 +1637,7 @@ class _ReturnCustomerPanel extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
-          color: const Color(0xFFEAEAEA),
+          color: const Color(0xFFFFE1C8),
         ),
       ),
       child: Column(
@@ -1610,7 +1662,7 @@ class _ReturnCustomerPanel extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: const Color(0xFFF8F8F8),
+              color: DojoPartnerTheme.background,
               borderRadius: BorderRadius.circular(12),
             ),
             child: Row(

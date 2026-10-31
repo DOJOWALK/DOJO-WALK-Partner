@@ -111,7 +111,7 @@ class WalkCompletedScreen extends StatelessWidget {
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(18),
                         border: Border.all(
-                          color: const Color(0xFFE8E8E8),
+                          color: DojoPartnerTheme.border,
                         ),
                       ),
                       child: Column(
@@ -122,7 +122,7 @@ class WalkCompletedScreen extends StatelessWidget {
                                 width: 48,
                                 height: 48,
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFFFFF1E8),
+                                  color: DojoPartnerTheme.primaryOrange.withValues(alpha: 0.10),
                                   borderRadius:
                                       BorderRadius.circular(14),
                                 ),
@@ -213,7 +213,7 @@ class WalkCompletedScreen extends StatelessWidget {
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(18),
                         border: Border.all(
-                          color: const Color(0xFFE8E8E8),
+                          color: DojoPartnerTheme.border,
                         ),
                       ),
                       child: Column(
@@ -238,20 +238,20 @@ class WalkCompletedScreen extends StatelessWidget {
                             ],
                           ),
                           const SizedBox(height: 12),
-                          Text(
-                            '₹${earnings.toStringAsFixed(2)}',
-                            style: const TextStyle(
-                              fontSize: 30,
-                              fontWeight: FontWeight.w900,
+                          const Text(
+                            'Pending verification',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w800,
                               color: DojoPartnerTheme.textPrimary,
                             ),
                           ),
                           const SizedBox(height: 5),
                           const Text(
-                            'Final payout depends on the recorded booking amount.',
+                            'Earnings will appear in your Earnings screen after this walk is verified and recorded. This completion screen does not calculate or confirm payout.',
                             style: TextStyle(
                               fontSize: 12,
-                              height: 1.4,
+                              height: 1.5,
                               color: DojoPartnerTheme.textSecondary,
                             ),
                           ),

@@ -778,7 +778,7 @@ class _LiveSelfieScreenState extends State<LiveSelfieScreen>
     final previewFile = _selfieFile;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFFAFAFA),
+      backgroundColor: DojoPartnerTheme.background,
       appBar: AppBar(
         title: const Text('Selfie Verification'),
         centerTitle: true,
@@ -867,7 +867,7 @@ class _LiveSelfieScreenState extends State<LiveSelfieScreen>
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(14),
                           border: Border.all(
-                            color: const Color(0xFFE7E7E7),
+                            color: DojoPartnerTheme.border,
                           ),
                         ),
                         child: Column(
@@ -907,7 +907,7 @@ class _LiveSelfieScreenState extends State<LiveSelfieScreen>
                     color: Colors.white,
                     border: Border(
                       top: BorderSide(
-                        color: Color(0xFFE8E8E8),
+                        color: DojoPartnerTheme.border,
                       ),
                     ),
                   ),

@@ -6,6 +6,7 @@ import '../../theme.dart';
 import '../../features/onboarding/screens/work_location_screen.dart';
 import '../../features/onboarding/screens/application_submitted_screen.dart';
 import '../home/partner_home_screen.dart';
+import 'mobile_login_screen.dart';
 
 class AccountCheckScreen extends StatefulWidget {
   const AccountCheckScreen({
@@ -155,7 +156,12 @@ class _AccountCheckScreenState extends State<AccountCheckScreen> {
 
       if (!mounted) return;
 
-      Navigator.of(context).popUntil((route) => route.isFirst);
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute<void>(
+          builder: (_) => const MobileLoginScreen(),
+        ),
+        (route) => false,
+      );
     } catch (_) {
       if (!mounted) return;
 
@@ -236,10 +242,10 @@ class _AccountCheckScreenState extends State<AccountCheckScreen> {
                         Container(
                           padding: const EdgeInsets.all(26),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFFAFAFA),
+                            color: DojoPartnerTheme.background,
                             borderRadius: BorderRadius.circular(22),
                             border: Border.all(
-                              color: const Color(0xFFEEEEEE),
+                              color: DojoPartnerTheme.border,
                             ),
                           ),
                           child: Column(

@@ -430,13 +430,13 @@ class _PersonalDetailsScreenState
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
         borderSide: const BorderSide(
-          color: Color(0xFFE5E5E5),
+          color: DojoPartnerTheme.border,
         ),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
         borderSide: const BorderSide(
-          color: Color(0xFFE5E5E5),
+          color: DojoPartnerTheme.border,
         ),
       ),
       focusedBorder: OutlineInputBorder(
@@ -640,7 +640,7 @@ class _PersonalDetailsScreenState
           Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: const Color(0xFFFFF5EB),
+              color: DojoPartnerTheme.primaryOrange.withValues(alpha: 0.06),
               borderRadius: BorderRadius.circular(14),
               border: Border.all(
                 color: DojoPartnerTheme.primaryOrange
@@ -721,7 +721,7 @@ class _PersonalDetailsScreenState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFFAFAFA),
+      backgroundColor: DojoPartnerTheme.background,
       appBar: AppBar(
         title: const Text('Personal Details'),
         centerTitle: true,

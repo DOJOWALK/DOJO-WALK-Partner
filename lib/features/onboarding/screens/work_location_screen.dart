@@ -290,7 +290,7 @@ class _WorkLocationScreenState extends State<WorkLocationScreen> {
           decoration: InputDecoration(
             hintText: hint,
             filled: true,
-            fillColor: const Color(0xFFFAFAFA),
+            fillColor: DojoPartnerTheme.background,
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 15,
               vertical: 16,
@@ -298,13 +298,13 @@ class _WorkLocationScreenState extends State<WorkLocationScreen> {
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(13),
               borderSide: const BorderSide(
-                color: Color(0xFFE5E5E5),
+                color: DojoPartnerTheme.border,
               ),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(13),
               borderSide: const BorderSide(
-                color: Color(0xFFE5E5E5),
+                color: DojoPartnerTheme.border,
               ),
             ),
             focusedBorder: OutlineInputBorder(
@@ -352,13 +352,13 @@ class _WorkLocationScreenState extends State<WorkLocationScreen> {
         padding: const EdgeInsets.all(15),
         decoration: BoxDecoration(
           color: selected
-              ? const Color(0xFFFFF5EC)
+              ? DojoPartnerTheme.primaryOrange.withValues(alpha: 0.08)
               : Colors.white,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
             color: selected
                 ? DojoPartnerTheme.primaryOrange
-                : const Color(0xFFE5E5E5),
+                : DojoPartnerTheme.border,
             width: selected ? 1.6 : 1,
           ),
         ),
@@ -401,7 +401,7 @@ class _WorkLocationScreenState extends State<WorkLocationScreen> {
                   : Icons.radio_button_unchecked,
               color: selected
                   ? DojoPartnerTheme.primaryOrange
-                  : const Color(0xFFBDBDBD),
+                  : DojoPartnerTheme.textSecondary,
             ),
           ],
         ),
@@ -594,7 +594,7 @@ class _WorkLocationScreenState extends State<WorkLocationScreen> {
                           Container(
                             padding: const EdgeInsets.all(14),
                             decoration: BoxDecoration(
-                              color: const Color(0xFFFFF5EC),
+                              color: DojoPartnerTheme.primaryOrange.withValues(alpha: 0.08),
                               borderRadius:
                                   BorderRadius.circular(12),
                             ),
@@ -627,7 +627,7 @@ class _WorkLocationScreenState extends State<WorkLocationScreen> {
                     color: Colors.white,
                     border: Border(
                       top: BorderSide(
-                        color: Color(0xFFEEEEEE),
+                        color: DojoPartnerTheme.border,
                       ),
                     ),
                   ),

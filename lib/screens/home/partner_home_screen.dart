@@ -9,6 +9,7 @@ import 'review_bottom_sheet.dart';
 import 'schedule_screen.dart';
 import 'walk_details_screen.dart';
 import 'working_schedule_screen.dart';
+import 'partner_notifications_screen.dart';
 
 class PartnerHomeScreen extends StatefulWidget {
   const PartnerHomeScreen({super.key});
@@ -20,13 +21,14 @@ class PartnerHomeScreen extends StatefulWidget {
 class _PartnerHomeScreenState extends State<PartnerHomeScreen> {
   bool _isLoading = true;
   bool _scheduleSet = false;
+  bool _todayBookingsLoadFailed = false;
 
   bool _showReviewPrompt = false;
   String? _reviewDogName;
   String? _reviewWalkId;
 
   String _fullName = 'Partner';
-  String _partnerId = 'DOJO-W-00124';
+  String _partnerId = 'Not assigned';
 
   List<Map<String, dynamic>> _todayBookings = [];
 
@@ -70,7 +72,7 @@ class _PartnerHomeScreenState extends State<PartnerHomeScreen> {
 
           _partnerId = walkerId is String && walkerId.trim().isNotEmpty
               ? walkerId.trim()
-              : 'DOJO-W-00124';
+              : 'Not assigned';
 
           _scheduleSet = schedule is Map &&
               schedule['status'] != null &&
@@ -87,6 +89,7 @@ class _PartnerHomeScreenState extends State<PartnerHomeScreen> {
 
       setState(() {
         _isLoading = false;
+        _todayBookingsLoadFailed = true;
       });
     }
   }
@@ -143,6 +146,7 @@ class _PartnerHomeScreenState extends State<PartnerHomeScreen> {
 
       setState(() {
         _todayBookings = bookings;
+        _todayBookingsLoadFailed = false;
         _isLoading = false;
       });
     } catch (_) {
@@ -150,6 +154,7 @@ class _PartnerHomeScreenState extends State<PartnerHomeScreen> {
 
       setState(() {
         _todayBookings = [];
+        _todayBookingsLoadFailed = true;
         _isLoading = false;
       });
     }
@@ -281,20 +286,23 @@ class _PartnerHomeScreenState extends State<PartnerHomeScreen> {
   }
 
   String _bookingDogName(Map<String, dynamic> booking) {
-    final value = booking['dogName'];
+    final directName = booking['petName'] ?? booking['dogName'];
 
-    if (value is String && value.trim().isNotEmpty) {
-      return value.trim();
+    if (directName is String && directName.trim().isNotEmpty) {
+      return directName.trim();
     }
 
-    final dog = booking['dog'];
+    final petDetails = booking['petDetails'];
+    final legacyDog = booking['dog'];
+    final pet = petDetails is Map
+        ? petDetails
+        : legacyDog is Map
+            ? legacyDog
+            : <String, dynamic>{};
+    final name = pet['name'] ?? pet['petName'];
 
-    if (dog is Map) {
-      final name = dog['name'];
-
-      if (name is String && name.trim().isNotEmpty) {
-        return name.trim();
-      }
+    if (name is String && name.trim().isNotEmpty) {
+      return name.trim();
     }
 
     return 'Dog';
@@ -463,9 +471,11 @@ class _PartnerHomeScreenState extends State<PartnerHomeScreen> {
   }
 
   void _openTab(BuildContext context, int index) {
+    // Keep Partner Home underneath secondary sections so the system/AppBar
+    // back action always has a safe destination.
     switch (index) {
       case 1:
-        Navigator.pushReplacement(
+        Navigator.push(
           context,
           MaterialPageRoute(
             builder: (_) => const ScheduleScreen(),
@@ -474,7 +484,7 @@ class _PartnerHomeScreenState extends State<PartnerHomeScreen> {
         break;
 
       case 2:
-        Navigator.pushReplacement(
+        Navigator.push(
           context,
           MaterialPageRoute(
             builder: (_) => const EarningsScreen(),
@@ -483,7 +493,7 @@ class _PartnerHomeScreenState extends State<PartnerHomeScreen> {
         break;
 
       case 3:
-        Navigator.pushReplacement(
+        Navigator.push(
           context,
           MaterialPageRoute(
             builder: (_) => const ProfileScreen(),
@@ -491,6 +501,12 @@ class _PartnerHomeScreenState extends State<PartnerHomeScreen> {
         );
         break;
     }
+  }
+
+  void _showPendingFeatureMessage(String feature) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('$feature will be available in a future update.')),
+    );
   }
 
   Future<void> _openWorkingSchedule() async {
@@ -598,8 +614,15 @@ class _PartnerHomeScreenState extends State<PartnerHomeScreen> {
     final firstName = _fullName.trim().isEmpty
         ? 'Partner'
         : _fullName.trim().split(' ').first;
+    final hour = DateTime.now().hour;
+    final greeting = hour < 12
+        ? 'Good morning'
+        : hour < 17
+            ? 'Good afternoon'
+            : 'Good evening';
 
     final totalWalks = _todayBookings.length;
+    final overviewWalks = _todayBookingsLoadFailed ? '—' : '$totalWalks';
 
     final totalMinutes = _todayBookings.fold<int>(
       0,
@@ -608,8 +631,10 @@ class _PartnerHomeScreenState extends State<PartnerHomeScreen> {
 
     final totalHours = totalMinutes / 60;
 
-    final hoursText = totalMinutes == 0
-        ? '0 hrs'
+    final hoursText = _todayBookingsLoadFailed
+        ? '—'
+        : totalMinutes == 0
+            ? '0 hrs'
         : totalMinutes % 60 == 0
             ? '${totalMinutes ~/ 60} hrs'
             : '${totalHours.toStringAsFixed(1)} hrs';
@@ -622,7 +647,15 @@ class _PartnerHomeScreenState extends State<PartnerHomeScreen> {
         ),
         actions: [
           IconButton(
-            onPressed: () {},
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute<void>(
+                  builder: (_) => const PartnerNotificationsScreen(),
+                ),
+              );
+            },
+            tooltip: 'Notifications',
             icon: const Icon(Icons.notifications_none_rounded),
           ),
         ],
@@ -642,7 +675,7 @@ class _PartnerHomeScreenState extends State<PartnerHomeScreen> {
                   padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
                   children: [
                     Text(
-                      'Good morning, $firstName 👋',
+                      '$greeting, $firstName 👋',
                       style: const TextStyle(
                         fontSize: 25,
                         fontWeight: FontWeight.w800,
@@ -665,7 +698,7 @@ class _PartnerHomeScreenState extends State<PartnerHomeScreen> {
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(18),
                         border: Border.all(
-                          color: const Color(0xFFEAEAEA),
+                          color: DojoPartnerTheme.border,
                         ),
                       ),
                       child: Row(
@@ -774,28 +807,31 @@ class _PartnerHomeScreenState extends State<PartnerHomeScreen> {
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(16),
-                        border: Border.all(
-                          color: const Color(0xFFEAEAEA),
-                        ),
+                        border: Border.all(color: DojoPartnerTheme.border),
                       ),
-                      child: const Row(
+                      child: Row(
                         children: [
-                          Icon(Icons.circle, size: 11, color: Colors.green),
-                          SizedBox(width: 10),
+                          Icon(
+                            Icons.calendar_month_outlined,
+                            size: 20,
+                            color: _scheduleSet
+                                ? DojoPartnerTheme.primaryOrange
+                                : DojoPartnerTheme.textSecondary,
+                          ),
+                          const SizedBox(width: 10),
                           Expanded(
                             child: Text(
-                              'Working',
-                              style: TextStyle(
-                                fontSize: 16,
+                              _scheduleSet ? 'Schedule configured' : 'Schedule not set',
+                              style: const TextStyle(
+                                fontSize: 15,
                                 fontWeight: FontWeight.w700,
+                                color: DojoPartnerTheme.textPrimary,
                               ),
                             ),
                           ),
-                          Text(
-                            'Today',
-                            style: TextStyle(
-                              color: DojoPartnerTheme.textSecondary,
-                            ),
+                          TextButton(
+                            onPressed: _openWorkingSchedule,
+                            child: const Text('Manage'),
                           ),
                         ],
                       ),
@@ -820,7 +856,7 @@ class _PartnerHomeScreenState extends State<PartnerHomeScreen> {
                           child: _OverviewCard(
                             icon: Icons.directions_walk_outlined,
                             title: 'Walks',
-                            value: '$totalWalks',
+                            value: overviewWalks,
                           ),
                         ),
                         const SizedBox(width: 12),
@@ -847,7 +883,11 @@ class _PartnerHomeScreenState extends State<PartnerHomeScreen> {
                     ),
                     const SizedBox(height: 12),
 
-                    if (_todayBookings.isEmpty)
+                    if (_todayBookingsLoadFailed)
+                      _WorkLoadErrorCard(
+                        onRetry: () => _loadPartnerData(),
+                      )
+                    else if (_todayBookings.isEmpty)
                       const _EmptyWorkCard()
                     else
                       ..._todayBookings.map(
@@ -875,14 +915,14 @@ class _PartnerHomeScreenState extends State<PartnerHomeScreen> {
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(16),
                       child: InkWell(
-                        onTap: () {},
+                        onTap: () => _showPendingFeatureMessage('Leave requests'),
                         borderRadius: BorderRadius.circular(16),
                         child: Container(
                           padding: const EdgeInsets.all(18),
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(16),
                             border: Border.all(
-                              color: const Color(0xFFEAEAEA),
+                              color: DojoPartnerTheme.border,
                             ),
                           ),
                           child: Row(
@@ -976,7 +1016,7 @@ class _EmptyWorkCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFEAEAEA)),
+        border: Border.all(color: DojoPartnerTheme.border),
       ),
       child: const Column(
         children: [
@@ -1025,9 +1065,11 @@ class _ReviewPromptCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFF9F4),
+        color: DojoPartnerTheme.primaryOrange.withValues(alpha: 0.04),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFFFE1C7)),
+        border: Border.all(
+          color: DojoPartnerTheme.primaryOrange.withValues(alpha: 0.18),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1124,9 +1166,11 @@ class _SetupCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFF9F4),
+        color: DojoPartnerTheme.primaryOrange.withValues(alpha: 0.04),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFFFE1C7)),
+        border: Border.all(
+          color: DojoPartnerTheme.primaryOrange.withValues(alpha: 0.18),
+        ),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1211,7 +1255,7 @@ class _OverviewCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFEAEAEA)),
+        border: Border.all(color: DojoPartnerTheme.border),
       ),
       child: Row(
         children: [
@@ -1266,15 +1310,22 @@ class _WalkCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Material(
       color: Colors.white,
-      borderRadius: BorderRadius.circular(16),
+      elevation: 4,
+      shadowColor: const Color(0x1AFF7900),
+      borderRadius: BorderRadius.circular(20),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(20),
         child: Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0xFFEAEAEA)),
+            gradient: const LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [Colors.white, Color(0xFFFFF7F0)],
+            ),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: const Color(0xFFFFE1C8)),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -1335,6 +1386,52 @@ class _WalkCard extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+
+class _WorkLoadErrorCard extends StatelessWidget {
+  const _WorkLoadErrorCard({required this.onRetry});
+
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: DojoPartnerTheme.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(Icons.cloud_off_outlined, color: DojoPartnerTheme.textSecondary, size: 28),
+          const SizedBox(height: 10),
+          const Text(
+            "Today's work couldn't be loaded",
+            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: DojoPartnerTheme.textPrimary),
+          ),
+          const SizedBox(height: 6),
+          const Text(
+            'Check your connection and retry. We will not show this as an empty schedule until the data loads.',
+            style: TextStyle(fontSize: 13, height: 1.4, color: DojoPartnerTheme.textSecondary),
+          ),
+          const SizedBox(height: 14),
+          OutlinedButton.icon(
+            onPressed: onRetry,
+            icon: const Icon(Icons.refresh_rounded),
+            label: const Text('Retry'),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: DojoPartnerTheme.primaryOrange,
+              side: const BorderSide(color: DojoPartnerTheme.primaryOrange),
+              minimumSize: const Size(double.infinity, 48),
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -30,6 +30,7 @@ class WalkDetailsScreen extends StatefulWidget {
 class _WalkDetailsScreenState
     extends State<WalkDetailsScreen> {
   bool _isLoading = false;
+  bool _isStartingNavigation = false;
 
   String _customerName = 'Customer';
   String _dogBreed = 'Dog';
@@ -42,8 +43,38 @@ class _WalkDetailsScreenState
     _loadBooking();
   }
 
+  String? _textValue(dynamic value) {
+    if (value is String && value.trim().isNotEmpty) {
+      return value.trim();
+    }
+    return null;
+  }
+
+  String _formatPickupAddress(dynamic value) {
+    if (value is String) return value.trim();
+    if (value is! Map) return '';
+
+    const keys = <String>[
+      'flatHouse',
+      'buildingSociety',
+      'address',
+      'area',
+      'landmark',
+      'city',
+      'pincode',
+    ];
+    final parts = <String>[];
+    for (final key in keys) {
+      final part = _textValue(value[key]);
+      if (part != null && !parts.contains(part)) {
+        parts.add(part);
+      }
+    }
+    return parts.join(', ');
+  }
+
   Future<void> _loadBooking() async {
-    final bookingId = widget.bookingId;
+    final bookingId = widget.bookingId?.trim();
 
     if (bookingId == null || bookingId.isEmpty) {
       return;
@@ -61,86 +92,53 @@ class _WalkDetailsScreenState
 
       if (!mounted) return;
 
-      if (doc.exists) {
-        final data =
-            doc.data() ?? <String, dynamic>{};
-
-        final customer = data['customer'];
-        final dog = data['dog'];
-
-        String customerName = 'Customer';
-        String dogBreed = 'Dog';
-        String dogSize = '';
-
-        if (customer is Map) {
-          final name = customer['name'];
-
-          if (name is String &&
-              name.trim().isNotEmpty) {
-            customerName = name.trim();
-          }
-        }
-
-        if (dog is Map) {
-          final breed = dog['breed'];
-          final size = dog['size'];
-
-          if (breed is String &&
-              breed.trim().isNotEmpty) {
-            dogBreed = breed.trim();
-          }
-
-          if (size is String &&
-              size.trim().isNotEmpty) {
-            dogSize = size.trim();
-          }
-        }
-
-        final directCustomerName =
-            data['customerName'];
-
-        final directDogBreed =
-            data['dogBreed'];
-
-        final directDogSize =
-            data['dogSize'];
-
-        final pickupAddress =
-            data['pickupAddress'];
-
-        if (directCustomerName is String &&
-            directCustomerName
-                .trim()
-                .isNotEmpty) {
-          customerName =
-              directCustomerName.trim();
-        }
-
-        if (directDogBreed is String &&
-            directDogBreed.trim().isNotEmpty) {
-          dogBreed = directDogBreed.trim();
-        }
-
-        if (directDogSize is String &&
-            directDogSize.trim().isNotEmpty) {
-          dogSize = directDogSize.trim();
-        }
-
+      if (!doc.exists) {
         setState(() {
-          _customerName = customerName;
-          _dogBreed = dogBreed;
-          _dogSize = dogSize;
-
-          if (pickupAddress is String &&
-              pickupAddress.trim().isNotEmpty) {
-            _pickupAddress =
-                pickupAddress.trim();
-          }
+          _customerName = 'Booking details unavailable';
+          _dogBreed = 'Not provided';
+          _dogSize = '';
+          _pickupAddress = '';
         });
+        return;
       }
+
+      final data = doc.data() ?? <String, dynamic>{};
+      final petDetails = data['petDetails'];
+      final legacyDog = data['dog'];
+      final customer = data['customer'];
+
+      final pet = petDetails is Map
+          ? petDetails
+          : legacyDog is Map
+              ? legacyDog
+              : <String, dynamic>{};
+
+      final customerMap = customer is Map
+          ? customer
+          : <String, dynamic>{};
+
+      final customerName = _textValue(data['customerName']) ??
+          _textValue(customerMap['name']) ??
+          'Not shared in booking';
+
+      final dogBreed = _textValue(pet['breed']) ??
+          _textValue(data['dogBreed']) ??
+          'Not provided';
+
+      final dogSize = _textValue(pet['size']) ??
+          _textValue(data['dogSize']) ??
+          '';
+
+      final pickup = _formatPickupAddress(data['pickupAddress']);
+
+      setState(() {
+        _customerName = customerName;
+        _dogBreed = dogBreed;
+        _dogSize = dogSize;
+        _pickupAddress = pickup;
+      });
     } catch (_) {
-      // Keep the screen usable with the data
-      // already passed from Home/Schedule.
+      // Keep the screen usable with the booking summary passed by Home.
     } finally {
       if (mounted) {
         setState(() {
@@ -153,23 +151,54 @@ class _WalkDetailsScreenState
   Future<void> _navigateToPickup() async {
     final bookingId = widget.bookingId;
 
-    if (bookingId != null &&
-        bookingId.isNotEmpty) {
-      try {
-        await FirebaseFirestore.instance
-            .collection('bookings')
-            .doc(bookingId)
-            .update({
-          'status': 'accepted',
-          'updatedAt':
-              FieldValue.serverTimestamp(),
-        });
-      } catch (_) {
-        // Navigation should still work.
+    if (bookingId == null || bookingId.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'This walk has no confirmed booking ID. Please contact support before continuing.',
+          ),
+        ),
+      );
+      return;
+    }
+
+    if (_isStartingNavigation) return;
+
+    setState(() {
+      _isStartingNavigation = true;
+    });
+
+    try {
+      await FirebaseFirestore.instance
+          .collection('bookings')
+          .doc(bookingId)
+          .update({
+        'status': 'accepted',
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Could not confirm this booking. Check your connection and try again before navigating.',
+            ),
+          ),
+        );
       }
+      if (mounted) {
+        setState(() {
+          _isStartingNavigation = false;
+        });
+      }
+      return;
     }
 
     if (!mounted) return;
+
+    setState(() {
+      _isStartingNavigation = false;
+    });
 
     Navigator.push(
       context,
@@ -181,7 +210,7 @@ class _WalkDetailsScreenState
               ? _pickupAddress
               : widget.location,
           duration: widget.duration,
-          bookingId: widget.bookingId,
+          bookingId: bookingId,
         ),
       ),
     );
@@ -215,7 +244,7 @@ class _WalkDetailsScreenState
                 borderRadius:
                     BorderRadius.circular(18),
                 border: Border.all(
-                  color: const Color(0xFFEAEAEA),
+                  color: DojoPartnerTheme.border,
                 ),
               ),
               child: Row(
@@ -326,7 +355,7 @@ class _WalkDetailsScreenState
                 borderRadius:
                     BorderRadius.circular(16),
                 border: Border.all(
-                  color: const Color(0xFFEAEAEA),
+                  color: DojoPartnerTheme.border,
                 ),
               ),
               child: Column(
@@ -361,11 +390,12 @@ class _WalkDetailsScreenState
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: const Color(0xFFFFF9F4),
+                color: DojoPartnerTheme.primaryOrange
+                    .withValues(alpha: 0.06),
                 borderRadius:
                     BorderRadius.circular(14),
                 border: Border.all(
-                  color: const Color(0xFFFFE1C7),
+                  color: DojoPartnerTheme.border,
                 ),
               ),
               child: const Row(
@@ -398,13 +428,23 @@ class _WalkDetailsScreenState
             const SizedBox(height: 28),
 
             ElevatedButton.icon(
-              onPressed:
-                  _isLoading ? null : _navigateToPickup,
-              icon: const Icon(
-                Icons.navigation_rounded,
-              ),
-              label: const Text(
-                'Navigate to Pickup',
+              onPressed: _isLoading || _isStartingNavigation
+                  ? null
+                  : _navigateToPickup,
+              icon: _isStartingNavigation
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Icon(Icons.navigation_rounded),
+              label: Text(
+                _isStartingNavigation
+                    ? 'Confirming Booking...'
+                    : 'Navigate to Pickup',
               ),
             ),
           ],
@@ -434,7 +474,7 @@ class _InfoCard extends StatelessWidget {
         borderRadius:
             BorderRadius.circular(14),
         border: Border.all(
-          color: const Color(0xFFEAEAEA),
+          color: DojoPartnerTheme.border,
         ),
       ),
       child: Row(

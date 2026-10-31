@@ -32,14 +32,13 @@ class _WorkingScheduleScreenState
   final Map<String, TimeOfDay> _endTimes = {};
 
   bool _isLoading = true;
-  bool _isSaving = false;
 
   @override
   void initState() {
     super.initState();
 
     for (final day in _days) {
-      _enabledDays[day] = true;
+      _enabledDays[day] = false;
       _startTimes[day] = const TimeOfDay(
         hour: 7,
         minute: 0,
@@ -173,10 +172,6 @@ class _WorkingScheduleScreenState
     return '$hour:$minute $period';
   }
 
-  int _minutes(TimeOfDay time) {
-    return time.hour * 60 + time.minute;
-  }
-
   Future<void> _selectTime(
     String day, {
     required bool isStart,
@@ -206,112 +201,13 @@ class _WorkingScheduleScreenState
   }
 
   Future<void> _saveSchedule() async {
-    final user = _auth.currentUser;
-
-    if (user == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Please sign in again to continue.',
-          ),
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text(
+          'Schedule changes are temporarily unavailable while the approved availability update process is being connected.',
         ),
-      );
-      return;
-    }
-
-    final selectedDays =
-        _days.where((day) => _enabledDays[day] == true).toList();
-
-    if (selectedDays.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Select at least one working day.',
-          ),
-        ),
-      );
-      return;
-    }
-
-    for (final day in selectedDays) {
-      final start = _startTimes[day]!;
-      final end = _endTimes[day]!;
-
-      if (_minutes(end) <= _minutes(start)) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              '$day: end time must be after start time.',
-            ),
-          ),
-        );
-        return;
-      }
-    }
-
-    setState(() {
-      _isSaving = true;
-    });
-
-    try {
-      final Map<String, dynamic> daysData = {};
-
-      for (final day in _days) {
-        final enabled = _enabledDays[day] == true;
-
-        daysData[day.toLowerCase()] = {
-          'enabled': enabled,
-          'start': _formatTime(_startTimes[day]!),
-          'end': _formatTime(_endTimes[day]!),
-        };
-      }
-
-      await _firestore
-          .collection('walkers')
-          .doc(user.uid)
-          .set(
-        {
-          'workingSchedule': {
-            'status': 'active',
-            'days': daysData,
-          },
-          'updatedAt': FieldValue.serverTimestamp(),
-        },
-        SetOptions(merge: true),
-      );
-
-      if (!mounted) {
-        return;
-      }
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Working schedule saved successfully.',
-          ),
-        ),
-      );
-
-      Navigator.pop(context, true);
-    } catch (_) {
-      if (!mounted) {
-        return;
-      }
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Unable to save your working schedule.',
-          ),
-        ),
-      );
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isSaving = false;
-        });
-      }
-    }
+      ),
+    );
   }
 
   @override
@@ -361,10 +257,10 @@ class _WorkingScheduleScreenState
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFFFF4EC),
+                      color: DojoPartnerTheme.primaryOrange.withValues(alpha: 0.08),
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(
-                        color: const Color(0xFFFFDEC8),
+                        color: DojoPartnerTheme.primaryOrange.withValues(alpha: 0.25),
                       ),
                     ),
                     child: const Row(
@@ -377,7 +273,7 @@ class _WorkingScheduleScreenState
                         SizedBox(width: 12),
                         Expanded(
                           child: Text(
-                            'Your working schedule helps DOJO assign regular walks within your available hours.',
+                            'Your selected hours are currently a preview. Changes cannot be saved until the approved availability update process is connected.',
                             style: TextStyle(
                               fontSize: 13,
                               height: 1.4,
@@ -426,17 +322,8 @@ class _WorkingScheduleScreenState
                   ),
                   const SizedBox(height: 22),
                   ElevatedButton(
-                    onPressed: _isSaving ? null : _saveSchedule,
-                    child: _isSaving
-                        ? const SizedBox(
-                            height: 22,
-                            width: 22,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2.5,
-                              color: Colors.white,
-                            ),
-                          )
-                        : const Text('Save Working Schedule'),
+                    onPressed: _saveSchedule,
+                    child: const Text('Schedule saving unavailable'),
                   ),
                 ],
               ),
@@ -595,7 +482,7 @@ class _TimeButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: const Color(0xFFF8F8F8),
+      color: DojoPartnerTheme.background,
       borderRadius: BorderRadius.circular(12),
       child: InkWell(
         onTap: onTap,

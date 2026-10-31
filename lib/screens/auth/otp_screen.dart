@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -10,10 +12,12 @@ class OtpScreen extends StatefulWidget {
     super.key,
     required this.phoneNumber,
     required this.verificationId,
+    this.resendToken,
   });
 
   final String phoneNumber;
   final String verificationId;
+  final int? resendToken;
 
   @override
   State<OtpScreen> createState() => _OtpScreenState();
@@ -24,17 +28,124 @@ class _OtpScreenState extends State<OtpScreen> {
   final _otpController = TextEditingController();
 
   bool _isVerifying = false;
+  bool _isResending = false;
+  bool _autoVerificationCompleted = false;
+  late String _verificationId;
+  int? _resendToken;
+  int _resendSeconds = 30;
+  Timer? _resendTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    _verificationId = widget.verificationId;
+    _resendToken = widget.resendToken;
+    _startResendCooldown();
+  }
+
+  void _startResendCooldown() {
+    _resendTimer?.cancel();
+    setState(() => _resendSeconds = 30);
+    _resendTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      if (_resendSeconds <= 1) {
+        timer.cancel();
+        setState(() => _resendSeconds = 0);
+      } else {
+        setState(() => _resendSeconds--);
+      }
+    });
+  }
 
   @override
   void dispose() {
+    _resendTimer?.cancel();
     _otpController.dispose();
     super.dispose();
+  }
+
+  Future<void> _resendOtp() async {
+    if (_isVerifying || _isResending || _resendSeconds > 0) return;
+    setState(() => _isResending = true);
+    try {
+      await FirebaseAuth.instance.verifyPhoneNumber(
+        phoneNumber: widget.phoneNumber,
+        timeout: const Duration(seconds: 60),
+        forceResendingToken: _resendToken,
+        verificationCompleted: (PhoneAuthCredential credential) async {
+          try {
+            await FirebaseAuth.instance.signInWithCredential(credential);
+            _autoVerificationCompleted = true;
+            if (!mounted) return;
+            Navigator.of(context).pushAndRemoveUntil(
+              MaterialPageRoute<void>(
+                builder: (_) =>
+                    AccountCheckScreen(phoneNumber: widget.phoneNumber),
+              ),
+              (route) => false,
+            );
+          } on FirebaseAuthException catch (e) {
+            if (!mounted) return;
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(e.message ?? 'Automatic verification failed.'),
+              ),
+            );
+          }
+        },
+        verificationFailed: (FirebaseAuthException e) {
+          if (!mounted) return;
+          final message = e.code == 'too-many-requests'
+              ? 'Too many attempts. Please try again later.'
+              : e.message ?? 'Unable to resend OTP. Please try again.';
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(message)),
+          );
+        },
+        codeSent: (String verificationId, int? resendToken) {
+          if (!mounted || _autoVerificationCompleted) return;
+          setState(() {
+            _verificationId = verificationId;
+            _resendToken = resendToken;
+            _otpController.clear();
+          });
+          _startResendCooldown();
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('A new OTP has been sent.')),
+          );
+        },
+        codeAutoRetrievalTimeout: (String verificationId) {
+          if (!mounted || _autoVerificationCompleted) return;
+          setState(() => _verificationId = verificationId);
+        },
+      );
+    } on FirebaseAuthException catch (e) {
+      if (!mounted) return;
+      final message = e.code == 'too-many-requests'
+          ? 'Too many attempts. Please try again later.'
+          : e.message ?? 'Unable to resend OTP. Please try again.';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message)),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Something went wrong. Please try again.'),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _isResending = false);
+    }
   }
 
   Future<void> _verify() async {
     if (!_formKey.currentState!.validate()) return;
 
-    if (widget.verificationId.isEmpty) {
+    if (_verificationId.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
@@ -53,7 +164,7 @@ class _OtpScreenState extends State<OtpScreen> {
 
     try {
       final credential = PhoneAuthProvider.credential(
-        verificationId: widget.verificationId,
+        verificationId: _verificationId,
         smsCode: _otpController.text.trim(),
       );
 
@@ -109,9 +220,9 @@ class _OtpScreenState extends State<OtpScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: DojoPartnerTheme.background,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: DojoPartnerTheme.background,
         elevation: 0,
         surfaceTintColor: Colors.transparent,
         leading: IconButton(
@@ -256,7 +367,7 @@ class _OtpScreenState extends State<OtpScreen> {
                                 color: Color(0xFFBDBDBD),
                               ),
                               filled: true,
-                              fillColor: const Color(0xFFFAFAFA),
+                              fillColor: DojoPartnerTheme.background,
                               contentPadding:
                                   const EdgeInsets.symmetric(
                                 vertical: 20,
@@ -265,13 +376,13 @@ class _OtpScreenState extends State<OtpScreen> {
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(14),
                                 borderSide: const BorderSide(
-                                  color: Color(0xFFE5E5E5),
+                                  color: DojoPartnerTheme.border,
                                 ),
                               ),
                               enabledBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(14),
                                 borderSide: const BorderSide(
-                                  color: Color(0xFFE5E5E5),
+                                  color: DojoPartnerTheme.border,
                                 ),
                               ),
                               focusedBorder: OutlineInputBorder(
@@ -316,6 +427,38 @@ class _OtpScreenState extends State<OtpScreen> {
                               color: DojoPartnerTheme.textSecondary,
                             ),
                           ),
+
+                          const SizedBox(height: 10),
+
+                          Center(
+                            child: TextButton(
+                              onPressed: _isVerifying ||
+                                      _isResending ||
+                                      _resendSeconds > 0
+                                  ? null
+                                  : _resendOtp,
+                              child: _isResending
+                                  ? const SizedBox(
+                                      width: 18,
+                                      height: 18,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                      ),
+                                    )
+                                  : Text(
+                                      _resendSeconds > 0
+                                          ? 'Resend OTP in ${_resendSeconds}s'
+                                          : 'Resend OTP',
+                                      style: const TextStyle(
+                                        color:
+                                            DojoPartnerTheme.primaryOrange,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                            ),
+                          ),
+
+                          const SizedBox(height: 14),
 
                           const SizedBox(height: 24),
 
