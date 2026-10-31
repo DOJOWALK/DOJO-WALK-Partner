@@ -16,6 +16,8 @@ jobs:
   build-release-apk:
     name: Build DOJO WALK Partner APK
     runs-on: ubuntu-latest
+    # Prevent a stalled release build from leaving the PR check pending forever.
+    timeout-minutes: 30
 
     steps:
       # 1. Checkout repository
@@ -24,6 +26,7 @@ jobs:
 
       # 2. Set up Flutter
       - name: Set up Flutter
+      
         uses: subosito/flutter-action@v2
         with:
           channel: stable
