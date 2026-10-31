@@ -21,6 +21,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   String _service = 'Dog Walking';
   String _rating = 'Not rated';
   String _phone = '';
+  String _verificationLabel = 'Verification pending';
 
   @override
   void initState() {
@@ -90,6 +91,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
           _service = serviceName;
           _rating = ratingText;
+          _verificationLabel = _verificationLabelFor(data);
 
           _phone = _readString(
             data['phone'],
@@ -351,7 +353,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                 ),
                 const SizedBox(height: 6),
-                const _VerifiedBadge(),
+                _VerificationBadge(label: _verificationLabel),
                 const SizedBox(height: 8),
                 Text(
                   'Partner ID  •  $_walkerId',
@@ -557,35 +559,69 @@ class _SectionTitle extends StatelessWidget {
   }
 }
 
-class _VerifiedBadge extends StatelessWidget {
-  const _VerifiedBadge();
+String _verificationLabelFor(Map<String, dynamic> data) {
+  final status = (data['status'] ?? '').toString().trim().toLowerCase();
+  final isApproved = data['isApproved'] == true;
+  final isActive = data['isActive'] == true;
+
+  if (isApproved && isActive && status == 'approved') {
+    return 'Verified Partner';
+  }
+  if (status == 'suspended' || status == 'disabled' ||
+      (isApproved && !isActive)) {
+    return 'Account inactive';
+  }
+  if (status == 'rejected') {
+    return 'Application not approved';
+  }
+  if (status == 'under_review' || data['applicationSubmitted'] == true) {
+    return 'Verification in review';
+  }
+  return 'Verification pending';
+}
+
+class _VerificationBadge extends StatelessWidget {
+  const _VerificationBadge({required this.label});
+
+  final String label;
 
   @override
   Widget build(BuildContext context) {
+    final verified = label == 'Verified Partner';
+    final rejected = label == 'Application not approved';
+    final foreground = verified
+        ? const Color(0xFF237A3B)
+        : rejected
+            ? const Color(0xFFB3261E)
+            : const Color(0xFF9A5700);
+    final background = verified
+        ? const Color(0xFFEAF8EE)
+        : rejected
+            ? const Color(0xFFFCE8E6)
+            : const Color(0xFFFFF3E0);
+    final icon = verified
+        ? Icons.verified
+        : rejected
+            ? Icons.error_outline
+            : Icons.hourglass_top_rounded;
+
     return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: 9,
-        vertical: 5,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
       decoration: BoxDecoration(
-        color: const Color(0xFFEAF8EE),
+        color: background,
         borderRadius: BorderRadius.circular(8),
       ),
-      child: const Row(
+      child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            Icons.verified,
-            size: 15,
-            color: Colors.green,
-          ),
-          SizedBox(width: 5),
+          Icon(icon, size: 15, color: foreground),
+          const SizedBox(width: 5),
           Text(
-            'Verified Partner',
+            label,
             style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w800,
-              color: Colors.green,
+              color: foreground,
             ),
           ),
         ],
