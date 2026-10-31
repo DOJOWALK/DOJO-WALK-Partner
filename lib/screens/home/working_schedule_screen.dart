@@ -206,6 +206,17 @@ class _WorkingScheduleScreenState
   }
 
   Future<void> _saveSchedule() async {
+    // UI-only guard: shared Firestore Rules do not currently permit this client write.
+    // Do not attempt the write or show a false successful-save message.
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text(
+          'Schedule changes are temporarily unavailable while the approved save process is being connected.',
+        ),
+      ),
+    );
+    return;
+
     final user = _auth.currentUser;
 
     if (user == null) {
@@ -377,7 +388,7 @@ class _WorkingScheduleScreenState
                         SizedBox(width: 12),
                         Expanded(
                           child: Text(
-                            'Your working schedule helps DOJO assign regular walks within your available hours.',
+                            'Your selected hours are currently a preview. Changes cannot be saved until the approved availability update process is connected.',
                             style: TextStyle(
                               fontSize: 13,
                               height: 1.4,
