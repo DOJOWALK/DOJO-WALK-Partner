@@ -249,7 +249,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   _ActionItem(
                     icon: Icons.notifications_none_outlined,
                     title: 'Notifications',
-                    subtitle: 'Manage notification preferences',
+                    subtitle: 'View notification updates',
                     onTap: () {
                       Navigator.of(context).push(
                         MaterialPageRoute<void>(
