@@ -255,11 +255,24 @@ class _KycStatusScreenState extends State<KycStatusScreen> {
           ),
           const SizedBox(height: 12),
           Text(
-            approved
-                ? 'Your account is approved and active.'
-                : correction
-                    ? 'Please contact DOJO Support for the next steps. Do not upload documents again unless requested.'
-                    : 'Your submitted information is shown below. Verification decisions are made by the DOJO review team.',
+            switch (status) {
+              'Approved & active' =>
+                'Your account is approved and active.',
+              'Correction required' =>
+                'Your application needs corrections. Contact DOJO Support for the required next steps.',
+              'Application not approved' =>
+                'Your application was not approved. Contact DOJO Support for assistance.',
+              'Account suspended' =>
+                'Your Partner account is suspended. Contact DOJO Support for assistance.',
+              'Account closed' =>
+                'This Partner account is closed. Contact DOJO Support if you believe this is incorrect.',
+              'Account inactive' =>
+                'Your account is not active. Contact DOJO Support for assistance.',
+              'Account status needs review — contact support' =>
+                'Your account status could not be confirmed. Contact DOJO Support.',
+              _ =>
+                'Your submitted information is shown below. Verification decisions are made by the DOJO review team.',
+            },
             style: const TextStyle(
               fontSize: 13,
               height: 1.5,
