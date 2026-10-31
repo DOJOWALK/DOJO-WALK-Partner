@@ -131,3 +131,10 @@ This audit made no Firebase or backend repository changes, no Firestore writes, 
 A follow-up source inspection found that the Profile notification item had been connected to `PartnerNotificationsScreen`, but the Home app-bar bell still displayed a “will be available” message. The two entry points were inconsistent. The Home bell now opens the same notification screen. The Profile subtitle now says “View notification updates” rather than promising preference management, which is not implemented.
 
 The notification screen remains an honest unavailable/empty state: it does not claim that push delivery or an inbox feed is connected. No FCM package, Firebase repository, Firestore Rules, Functions, or backend code was changed. This was a Partner UI-only navigation correction. Flutter CI/build verification is pending for this follow-up commit.
+
+
+## Follow-up verification — secondary-section back navigation (2026-10-31)
+
+The Home bottom navigation originally used `Navigator.pushReplacement` for Schedule, Earnings, and Profile. Those destination screens do not provide a shared bottom navigation bar. Because AccountCheck clears the earlier route stack before opening Partner Home, replacing Home could leave a secondary section without a reliable in-app route back to Home. The Home tab handler now uses `Navigator.push` for these three destinations, retaining Home beneath the selected section so the AppBar/system back action can return safely.
+
+This is a Partner UI navigation-only change. The earlier CI run #315 passed before this back-stack correction; a new CI run is required to verify this commit. No Firebase/Backend repository, Rules, Functions, data, or deployment was changed. Physical-device back-button behavior remains unverified.
