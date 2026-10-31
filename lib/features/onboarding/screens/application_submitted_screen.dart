@@ -423,14 +423,6 @@ class _ApplicationSubmittedScreenState
               accountStatus == 'Application not approved';
           final isCorrectionRequired =
               accountStatus == 'Correction required';
-          final isTerminalOrRestricted = {
-            'Application not approved',
-            'Correction required',
-            'Account suspended',
-            'Account closed',
-            'Account inactive',
-            'Account status needs review — contact support',
-          }.contains(accountStatus);
           final showApplicationProgress = {
             'Verification in review',
             'Verification pending',
