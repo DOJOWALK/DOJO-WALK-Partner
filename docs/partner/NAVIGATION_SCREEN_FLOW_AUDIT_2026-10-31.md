@@ -50,7 +50,7 @@ PartnerHomeScreen
   └─ ProfileScreen
        ├─ Personal Details → read-only bottom sheet
        ├─ Documents & KYC → KycStatusScreen
-       ├─ Notifications → Coming Soon dialog
+       ├─ Notifications → PartnerNotificationsScreen (empty/unavailable state)
        ├─ DOJO Support → PartnerSupportScreen
        ├─ About DOJO Partner → About dialog
        └─ Logout → Firebase Auth sign-out → login screen
@@ -102,7 +102,7 @@ Home → Walk Details → Navigation → Live Walk → Walk Summary is connected
 
 ### P2 — Profile shortcuts have mixed implementation depth
 
-KYC status and Support are reachable screens. Personal Details is a read-only bottom sheet. General Settings and notification preferences are Coming Soon. These should be labelled accurately until supported flows are agreed.
+KYC status and Support are reachable screens. Personal Details is a read-only bottom sheet. General Settings and notification preferences are not implemented. The Notifications item opens an honest empty/unavailable inbox; it does not manage preferences yet. These should be labelled accurately until supported flows are agreed.
 
 ### P2 — Legacy completion screen
 
@@ -124,3 +124,10 @@ AccountCheck routes approved/active accounts to Home and keeps other known statu
 ## Explicit scope boundary
 
 This audit made no Firebase or backend repository changes, no Firestore writes, no Rules/Functions changes, no branch creation, and no deployment. It did not run Flutter build/tests or physical-device navigation tests. All findings are based on checked-in Partner source inspection.
+
+
+## Follow-up verification — notification entry points (2026-10-31)
+
+A follow-up source inspection found that the Profile notification item had been connected to `PartnerNotificationsScreen`, but the Home app-bar bell still displayed a “will be available” message. The two entry points were inconsistent. The Home bell now opens the same notification screen. The Profile subtitle now says “View notification updates” rather than promising preference management, which is not implemented.
+
+The notification screen remains an honest unavailable/empty state: it does not claim that push delivery or an inbox feed is connected. No FCM package, Firebase repository, Firestore Rules, Functions, or backend code was changed. This was a Partner UI-only navigation correction. Flutter CI/build verification is pending for this follow-up commit.
