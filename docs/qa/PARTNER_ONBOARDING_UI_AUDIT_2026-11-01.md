@@ -45,7 +45,7 @@ Make a UI-only Live Selfie preview sizing change that responds to available scre
 
 ## Evidence limitations
 
-- Source refs were inspected on `main` at the time of this audit.
+- Source refs were inspected on the PR #5 head branch `chore/notion-aligned-structure` (head SHA `71c94d4d3f879161c3934494f9aed6a5c5c4c85e`) at the time of this audit. The six inspected source files were: Work Location `56baeb49c91908116ea99a284f1e3e4883b39d80`; Personal Details `fa1f1b60df2fbe92df227f29f42fc02d7a356bdc`; Live Selfie `a4a6f1dc272845bcecac4b92e28718561af2212b`; KYC Documents `9028c4ff84ada3e525e8def978112429fcee71d7`; Current Address `a4caef0ca8394e07c2354449928650d7dc441742`; Review & Submit `83610b86907e3ffcb9d4f7550609a1a8a7fe5802`.
 - This document is a source audit and test plan, not a Flutter test report.
 - No emulator, physical-device, permission-dialog, camera, Firebase Emulator, or backend integration test was run.
 - Record Flutter analyze, widget-test, and APK results only after running them on the exact PR head SHA.
