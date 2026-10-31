@@ -471,9 +471,11 @@ class _PartnerHomeScreenState extends State<PartnerHomeScreen> {
   }
 
   void _openTab(BuildContext context, int index) {
+    // Keep Partner Home underneath secondary sections so the system/AppBar
+    // back action always has a safe destination.
     switch (index) {
       case 1:
-        Navigator.pushReplacement(
+        Navigator.push(
           context,
           MaterialPageRoute(
             builder: (_) => const ScheduleScreen(),
@@ -482,7 +484,7 @@ class _PartnerHomeScreenState extends State<PartnerHomeScreen> {
         break;
 
       case 2:
-        Navigator.pushReplacement(
+        Navigator.push(
           context,
           MaterialPageRoute(
             builder: (_) => const EarningsScreen(),
@@ -491,7 +493,7 @@ class _PartnerHomeScreenState extends State<PartnerHomeScreen> {
         break;
 
       case 3:
-        Navigator.pushReplacement(
+        Navigator.push(
           context,
           MaterialPageRoute(
             builder: (_) => const ProfileScreen(),
