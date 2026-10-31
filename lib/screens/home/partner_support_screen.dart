@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../../../theme.dart';
+import '../../features/support/create_partner_support_request.dart';
 
 class PartnerSupportScreen extends StatefulWidget {
   const PartnerSupportScreen({super.key});
@@ -52,15 +53,11 @@ class _PartnerSupportScreenState extends State<PartnerSupportScreen> {
 
     setState(() => _sending = true);
     try {
-      await FirebaseFirestore.instance.collection('support_requests').add({
-        'userId': user.uid,
-        'walkerId': user.uid,
-        'category': _category,
-        'message': message,
-        'status': 'open',
-        'createdAt': FieldValue.serverTimestamp(),
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
+      await createPartnerSupportRequest(
+        userId: user.uid,
+        category: _category,
+        message: message,
+      );
 
       if (!mounted) return;
       _messageController.clear();
