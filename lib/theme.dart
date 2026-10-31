@@ -43,7 +43,7 @@ class DojoPartnerTheme {
           vertical: 16,
         ),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(16),
           borderSide: const BorderSide(color: border),
         ),
         enabledBorder: OutlineInputBorder(
