@@ -834,6 +834,7 @@ class _LiveWalkScreenState extends State<LiveWalkScreen> {
             location: widget.location,
             peeCount: _peeCount,
             poopCount: _poopCount,
+            gpsTrackingRecorded: _startedAt != null && _startPosition != null,
           ),
         ),
       );
