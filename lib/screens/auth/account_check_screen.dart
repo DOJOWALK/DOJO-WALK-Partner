@@ -79,9 +79,6 @@ class _AccountCheckScreenState extends State<AccountCheckScreen> {
           .trim()
           .toLowerCase();
 
-      final isApproved = data['isApproved'] == true;
-      final isActive = data['isActive'] == true;
-
       // Only approved and active Partners can enter Partner Home.
       if (PartnerHomeAccessGate.canEnter(
         status: status,
