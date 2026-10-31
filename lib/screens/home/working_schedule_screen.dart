@@ -173,10 +173,6 @@ class _WorkingScheduleScreenState
     return '$hour:$minute $period';
   }
 
-  int _minutes(TimeOfDay time) {
-    return time.hour * 60 + time.minute;
-  }
-
   Future<void> _selectTime(
     String day, {
     required bool isStart,
@@ -206,123 +202,13 @@ class _WorkingScheduleScreenState
   }
 
   Future<void> _saveSchedule() async {
-    // UI-only guard: shared Firestore Rules do not currently permit this client write.
-    // Do not attempt the write or show a false successful-save message.
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text(
-          'Schedule changes are temporarily unavailable while the approved save process is being connected.',
+          'Schedule changes are temporarily unavailable while the approved availability update process is being connected.',
         ),
       ),
     );
-    return;
-
-    final user = _auth.currentUser;
-
-    if (user == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Please sign in again to continue.',
-          ),
-        ),
-      );
-      return;
-    }
-
-    final selectedDays =
-        _days.where((day) => _enabledDays[day] == true).toList();
-
-    if (selectedDays.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Select at least one working day.',
-          ),
-        ),
-      );
-      return;
-    }
-
-    for (final day in selectedDays) {
-      final start = _startTimes[day]!;
-      final end = _endTimes[day]!;
-
-      if (_minutes(end) <= _minutes(start)) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              '$day: end time must be after start time.',
-            ),
-          ),
-        );
-        return;
-      }
-    }
-
-    setState(() {
-      _isSaving = true;
-    });
-
-    try {
-      final Map<String, dynamic> daysData = {};
-
-      for (final day in _days) {
-        final enabled = _enabledDays[day] == true;
-
-        daysData[day.toLowerCase()] = {
-          'enabled': enabled,
-          'start': _formatTime(_startTimes[day]!),
-          'end': _formatTime(_endTimes[day]!),
-        };
-      }
-
-      await _firestore
-          .collection('walkers')
-          .doc(user.uid)
-          .set(
-        {
-          'workingSchedule': {
-            'status': 'active',
-            'days': daysData,
-          },
-          'updatedAt': FieldValue.serverTimestamp(),
-        },
-        SetOptions(merge: true),
-      );
-
-      if (!mounted) {
-        return;
-      }
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Working schedule saved successfully.',
-          ),
-        ),
-      );
-
-      Navigator.pop(context, true);
-    } catch (_) {
-      if (!mounted) {
-        return;
-      }
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Unable to save your working schedule.',
-          ),
-        ),
-      );
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isSaving = false;
-        });
-      }
-    }
   }
 
   @override
