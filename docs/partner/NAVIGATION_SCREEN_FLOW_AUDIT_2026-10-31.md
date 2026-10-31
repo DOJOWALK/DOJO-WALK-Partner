@@ -138,3 +138,18 @@ The notification screen remains an honest unavailable/empty state: it does not c
 The Home bottom navigation originally used `Navigator.pushReplacement` for Schedule, Earnings, and Profile. Those destination screens do not provide a shared bottom navigation bar. Because AccountCheck clears the earlier route stack before opening Partner Home, replacing Home could leave a secondary section without a reliable in-app route back to Home. The Home tab handler now uses `Navigator.push` for these three destinations, retaining Home beneath the selected section so the AppBar/system back action can return safely.
 
 This is a Partner UI navigation-only change. The earlier CI run #315 passed before this back-stack correction; a new CI run is required to verify this commit. No Firebase/Backend repository, Rules, Functions, data, or deployment was changed. Physical-device back-button behavior remains unverified.
+
+
+## Follow-up verification — active-walk back-stack protection (2026-10-31)
+
+A source-level inspection of the complete walk route found the following intentional stack behavior:
+
+- WalkDetails → Navigation uses `Navigator.push`, so the details route remains below Navigation until the walk is actually started.
+- Navigation → LiveWalk uses `Navigator.pushReplacement` only after the booking status update succeeds. This removes the pre-start Navigation screen from the active route stack.
+- LiveWalk is wrapped in `PopScope(canPop: false)` and its AppBar disables the automatic leading/back button. This prevents ordinary back navigation from abandoning an in-progress walk screen.
+- LiveWalk → WalkSummary uses `Navigator.pushReplacement`; WalkSummary → Home uses `pushAndRemoveUntil`, clearing the operational stack after the Partner chooses Continue.
+- OTP → AccountCheck and Splash → Login also use replacement navigation. AccountCheck clears the stack when routing into onboarding, Application Submitted, or approved Home.
+
+No additional code change was made in this follow-up because the inspected stack transitions are consistent with the intended walk lifecycle. These are source findings only; Android system-back behavior on a physical device and interrupted-process recovery remain unverified. A live-walk widget test would require isolating location, permission, and Firestore dependencies first; it should not be added as a brittle test against real plugins.
+
+CI run #316 (run ID `41183544235`) has Analyze and Flutter Tests completed successfully. At the last poll, Release APK Build was still in progress and APK Upload was pending; therefore the workflow is not yet reported as fully passed.
