@@ -9,6 +9,7 @@ import 'review_bottom_sheet.dart';
 import 'schedule_screen.dart';
 import 'walk_details_screen.dart';
 import 'working_schedule_screen.dart';
+import 'partner_notifications_screen.dart';
 
 class PartnerHomeScreen extends StatefulWidget {
   const PartnerHomeScreen({super.key});
@@ -644,7 +645,14 @@ class _PartnerHomeScreenState extends State<PartnerHomeScreen> {
         ),
         actions: [
           IconButton(
-            onPressed: () => _showPendingFeatureMessage('Notifications'),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute<void>(
+                  builder: (_) => const PartnerNotificationsScreen(),
+                ),
+              );
+            },
             tooltip: 'Notifications',
             icon: const Icon(Icons.notifications_none_rounded),
           ),
