@@ -116,9 +116,9 @@ class _NavigationScreenState extends State<NavigationScreen> {
     }
   }
 
-  Future<void> _startWalk() async {
+  Future<bool> _startWalk() async {
     if (!_arrived || !_dogReceived || _updatingBooking) {
-      return;
+      return false;
     }
 
     setState(() {
@@ -127,13 +127,13 @@ class _NavigationScreenState extends State<NavigationScreen> {
 
     final success = await _updateBookingStatus('walking');
 
-    if (!mounted) return;
+    if (!mounted) return false;
 
     if (!success) {
       setState(() {
         _updatingBooking = false;
       });
-      return;
+      return false;
     }
 
     Navigator.pushReplacement(
@@ -148,6 +148,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
         ),
       ),
     );
+    return true;
   }
 
   @override
@@ -412,7 +413,7 @@ class _SlideToStart extends StatefulWidget {
   });
 
   final bool enabled;
-  final VoidCallback onCompleted;
+  final Future<bool> Function() onCompleted;
 
   @override
   State<_SlideToStart> createState() => _SlideToStartState();
@@ -423,8 +424,10 @@ class _SlideToStartState extends State<_SlideToStart> {
 
   bool _completed = false;
 
+  bool _isSubmitting = false;
+
   void _updateValue(double value) {
-    if (!widget.enabled || _completed) return;
+    if (!widget.enabled || _completed || _isSubmitting) return;
 
     final safeValue = value.clamp(0.0, 1.0);
 
@@ -433,18 +436,29 @@ class _SlideToStartState extends State<_SlideToStart> {
     });
 
     if (safeValue >= 0.92) {
-      _completed = true;
-
-      setState(() {
-        _value = 1.0;
-      });
-
-      widget.onCompleted();
+      _submitStart();
     }
   }
 
+  Future<void> _submitStart() async {
+    if (_isSubmitting || _completed) return;
+
+    setState(() {
+      _isSubmitting = true;
+    });
+
+    final started = await widget.onCompleted();
+    if (!mounted) return;
+
+    setState(() {
+      _isSubmitting = false;
+      _completed = started;
+      _value = started ? 1.0 : 0.0;
+    });
+  }
+
   void _resetSlider() {
-    if (!widget.enabled || _completed) return;
+    if (!widget.enabled || _completed || _isSubmitting) return;
 
     setState(() {
       _value = 0;
@@ -465,7 +479,7 @@ class _SlideToStartState extends State<_SlideToStart> {
             availableWidth * _value;
 
         return GestureDetector(
-          onHorizontalDragUpdate: widget.enabled
+          onHorizontalDragUpdate: widget.enabled && !_isSubmitting
               ? (details) {
                   final double nextValue =
                       _value +
@@ -475,7 +489,7 @@ class _SlideToStartState extends State<_SlideToStart> {
                   _updateValue(nextValue);
                 }
               : null,
-          onHorizontalDragEnd: widget.enabled
+          onHorizontalDragEnd: widget.enabled && !_isSubmitting
               ? (_) {
                   if (_value < 0.92) {
                     _resetSlider();
@@ -555,8 +569,10 @@ class _SlideToStartState extends State<_SlideToStart> {
                       ),
                     ),
                     child: Icon(
-                      _completed
-                          ? Icons.check
+                      _isSubmitting
+                          ? Icons.more_horiz
+                          : _completed
+                              ? Icons.check
                           : Icons.arrow_forward_rounded,
                       color:
                           DojoPartnerTheme.primaryOrange,
