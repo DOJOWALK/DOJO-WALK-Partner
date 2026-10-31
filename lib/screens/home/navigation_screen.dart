@@ -170,11 +170,48 @@ class _NavigationScreenState extends State<NavigationScreen> {
             width: double.infinity,
             height: double.infinity,
             color: DojoPartnerTheme.background,
-            child: const Center(
-              child: Icon(
-                Icons.map_outlined,
-                size: 100,
-                color: DojoPartnerTheme.textSecondary,
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(32, 150, 32, 190),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      width: 76,
+                      height: 76,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: DojoPartnerTheme.border),
+                      ),
+                      child: const Icon(
+                        Icons.map_outlined,
+                        size: 38,
+                        color: DojoPartnerTheme.primaryOrange,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'Map preview unavailable',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w800,
+                        color: DojoPartnerTheme.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Turn-by-turn map navigation is not connected in this app version. Confirm the pickup address below before proceeding.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 13,
+                        height: 1.45,
+                        color: DojoPartnerTheme.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
