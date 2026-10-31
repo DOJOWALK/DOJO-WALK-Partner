@@ -431,8 +431,11 @@ class _ApplicationSubmittedScreenState
             'Account inactive',
             'Account status needs review — contact support',
           }.contains(accountStatus);
-          final showApplicationProgress = !isTerminalOrRestricted &&
-              accountStatus != 'Approved & active';
+          final showApplicationProgress = {
+            'Verification in review',
+            'Verification pending',
+            'Application in progress',
+          }.contains(accountStatus);
 
           final statusLabel = accountStatus.toUpperCase();
           final statusMessage = switch (accountStatus) {
@@ -502,8 +505,14 @@ class _ApplicationSubmittedScreenState
                                       : accountStatus == 'Account inactive'
                                           ? 'Account Inactive'
                                           : accountStatus == 'Status unavailable'
-                                              ? 'Status Unavailable'
-                                              : 'Application Status',
+                              ? 'Status Unavailable'
+                              : accountStatus == 'Verification in review'
+                                  ? 'Application Under Review'
+                                  : accountStatus == 'Verification pending'
+                                      ? 'Verification Pending'
+                                      : accountStatus == 'Application in progress'
+                                          ? 'Application In Progress'
+                                          : 'Application Status',
                   textAlign: TextAlign.center,
                   style: const TextStyle(
                     color: _text,
