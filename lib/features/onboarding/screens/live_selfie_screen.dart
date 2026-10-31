@@ -14,6 +14,11 @@ import 'package:image/image.dart' as img;
 import '../../../theme.dart';
 import 'kyc_documents_screen.dart';
 
+/// Keeps the camera preview useful on compact screens without letting it
+/// dominate the available vertical space.
+double liveSelfiePreviewHeight(double availableHeight) =>
+    (availableHeight * 0.42).clamp(220.0, 370.0).toDouble();
+
 class LiveSelfieScreen extends StatefulWidget {
   const LiveSelfieScreen({super.key});
 
@@ -776,6 +781,9 @@ class _LiveSelfieScreenState extends State<LiveSelfieScreen>
   @override
   Widget build(BuildContext context) {
     final previewFile = _selfieFile;
+    final previewHeight = liveSelfiePreviewHeight(
+      MediaQuery.sizeOf(context).height,
+    );
 
     return Scaffold(
       backgroundColor: DojoPartnerTheme.background,
@@ -835,7 +843,7 @@ class _LiveSelfieScreenState extends State<LiveSelfieScreen>
                       ),
                       const SizedBox(height: 20),
                       Container(
-                        height: 370,
+                        height: previewHeight,
                         clipBehavior: Clip.antiAlias,
                         decoration: BoxDecoration(
                           color: Colors.black,
@@ -858,7 +866,7 @@ class _LiveSelfieScreenState extends State<LiveSelfieScreen>
                                   ),
                                 ),
                               )
-                            : _buildCameraPreview(),
+                            : _buildCameraPreview(previewHeight),
                       ),
                       const SizedBox(height: 16),
                       Container(
@@ -1000,7 +1008,7 @@ class _LiveSelfieScreenState extends State<LiveSelfieScreen>
     );
   }
 
-  Widget _buildCameraPreview() {
+  Widget _buildCameraPreview(double previewHeight) {
     final camera = _camera;
 
     if (_initializing ||
@@ -1022,7 +1030,7 @@ class _LiveSelfieScreenState extends State<LiveSelfieScreen>
           child: Center(
             child: Container(
               width: 240,
-              height: 300,
+              height: previewHeight * 0.82,
               decoration: BoxDecoration(
                 border: Border.all(
                   color: Colors.white,
