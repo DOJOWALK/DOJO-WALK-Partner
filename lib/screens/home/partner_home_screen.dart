@@ -285,20 +285,23 @@ class _PartnerHomeScreenState extends State<PartnerHomeScreen> {
   }
 
   String _bookingDogName(Map<String, dynamic> booking) {
-    final value = booking['dogName'];
+    final directName = booking['petName'] ?? booking['dogName'];
 
-    if (value is String && value.trim().isNotEmpty) {
-      return value.trim();
+    if (directName is String && directName.trim().isNotEmpty) {
+      return directName.trim();
     }
 
-    final dog = booking['dog'];
+    final petDetails = booking['petDetails'];
+    final legacyDog = booking['dog'];
+    final pet = petDetails is Map
+        ? petDetails
+        : legacyDog is Map
+            ? legacyDog
+            : <String, dynamic>{};
+    final name = pet['name'] ?? pet['petName'];
 
-    if (dog is Map) {
-      final name = dog['name'];
-
-      if (name is String && name.trim().isNotEmpty) {
-        return name.trim();
-      }
+    if (name is String && name.trim().isNotEmpty) {
+      return name.trim();
     }
 
     return 'Dog';
