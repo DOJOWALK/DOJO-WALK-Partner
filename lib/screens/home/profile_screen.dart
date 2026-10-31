@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../theme.dart';
 import '../auth/mobile_login_screen.dart';
+import '../../features/onboarding/screens/kyc_status_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -201,11 +202,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     title: 'Documents & KYC',
                     subtitle: 'Aadhaar, PAN and verification',
                     onTap: () {
-                      _showComingSoon(
-                        context,
-                        'Documents & KYC',
-                        'Your submitted KYC documents and '
-                            'verification status will appear here.',
+                      Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (_) => const KycStatusScreen(),
+                        ),
                       );
                     },
                   ),
