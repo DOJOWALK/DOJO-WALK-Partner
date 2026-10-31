@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../../theme.dart';
+import '../../features/account/partner_home_access_gate.dart';
 import '../../features/onboarding/screens/work_location_screen.dart';
 import '../../features/onboarding/screens/application_submitted_screen.dart';
 import '../home/partner_home_screen.dart';
@@ -82,7 +83,11 @@ class _AccountCheckScreenState extends State<AccountCheckScreen> {
       final isActive = data['isActive'] == true;
 
       // Only approved and active Partners can enter Partner Home.
-      if (isApproved && isActive && status == 'approved') {
+      if (PartnerHomeAccessGate.canEnter(
+        status: status,
+        isApproved: data['isApproved'],
+        isActive: data['isActive'],
+      )) {
         Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute<void>(
             builder: (_) => const PartnerHomeScreen(),
