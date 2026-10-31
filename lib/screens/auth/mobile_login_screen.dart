@@ -106,6 +106,7 @@ class _MobileLoginScreenState extends State<MobileLoginScreen> {
               builder: (_) => OtpScreen(
                 phoneNumber: phone,
                 verificationId: verificationId,
+                resendToken: resendToken,
               ),
             ),
           );
