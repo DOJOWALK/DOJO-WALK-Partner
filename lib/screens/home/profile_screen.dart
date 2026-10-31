@@ -6,6 +6,7 @@ import '../../theme.dart';
 import '../auth/mobile_login_screen.dart';
 import '../../features/onboarding/screens/kyc_status_screen.dart';
 import 'partner_support_screen.dart';
+import 'partner_notifications_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -250,11 +251,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     title: 'Notifications',
                     subtitle: 'Manage notification preferences',
                     onTap: () {
-                      _showComingSoon(
-                        context,
-                        'Notifications',
-                        'Notification preferences will be '
-                            'available here.',
+                      Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (_) =>
+                              const PartnerNotificationsScreen(),
+                        ),
                       );
                     },
                   ),
