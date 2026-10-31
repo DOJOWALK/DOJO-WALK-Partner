@@ -32,7 +32,6 @@ class _WorkingScheduleScreenState
   final Map<String, TimeOfDay> _endTimes = {};
 
   bool _isLoading = true;
-  bool _isSaving = false;
 
   @override
   void initState() {
@@ -323,15 +322,9 @@ class _WorkingScheduleScreenState
                   ),
                   const SizedBox(height: 22),
                   ElevatedButton(
-                    onPressed: _isSaving ? null : _saveSchedule,
-                    child: _isSaving
-                        ? const SizedBox(
-                            height: 22,
-                            width: 22,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2.5,
-                              color: Colors.white,
-                            ),
+                    onPressed: _saveSchedule,
+                    child: const Text('Schedule saving unavailable'),
+                  ),
                           )
                         : const Text('Save Working Schedule'),
                   ),
