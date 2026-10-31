@@ -72,7 +72,7 @@ class ScheduleScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    'Your confirmed walks will appear here',
+                    'Your assigned walk calendar is not connected yet',
                     textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.w800,
@@ -81,7 +81,7 @@ class ScheduleScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Only confirmed assignments should be shown here. Walk times and customer details are not displayed until real booking data is available.',
+                    'This screen does not yet receive a reliable assigned-walk schedule. Once the assignment feed is connected, confirmed walks and their approved details will appear here.',
                     textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           height: 1.45,
