@@ -1241,7 +1241,7 @@ class _LiveMapState extends State<_LiveMap> {
         color: DojoPartnerTheme.background,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
-          color: DojoPartnerTheme.border,
+          color: const Color(0xFFFFE1C8),
         ),
       ),
       child: Stack(
@@ -1366,7 +1366,7 @@ class _MetricCard extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(15),
         border: Border.all(
-          color: DojoPartnerTheme.border,
+          color: const Color(0xFFFFE1C8),
         ),
       ),
       child: Column(
@@ -1431,7 +1431,7 @@ class _WalkNotesCard extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(15),
         border: Border.all(
-          color: DojoPartnerTheme.border,
+          color: const Color(0xFFFFE1C8),
         ),
       ),
       child: Column(
@@ -1497,7 +1497,7 @@ class _NoteControl extends StatelessWidget {
         vertical: 8,
       ),
       decoration: BoxDecoration(
-        color: DojoPartnerTheme.background,
+        color: const Color(0xFFFFFAF5),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
@@ -1637,7 +1637,7 @@ class _ReturnCustomerPanel extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
-          color: DojoPartnerTheme.border,
+          color: const Color(0xFFFFE1C8),
         ),
       ),
       child: Column(
