@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:image/image.dart' as img;
 import 'package:dojo_partner/features/onboarding/utils/selfie_photo_quality.dart';
@@ -5,7 +7,7 @@ import 'package:dojo_partner/features/onboarding/utils/selfie_photo_quality.dart
 void main() {
   group('isSelfiePhotoBytesAcceptable', () {
     test('rejects undecodable bytes', () {
-      expect(isSelfiePhotoBytesAcceptable(<int>[1, 2, 3]), isFalse);
+      expect(isSelfiePhotoBytesAcceptable(Uint8List.fromList(<int>[1, 2, 3])), isFalse);
     });
   });
 
