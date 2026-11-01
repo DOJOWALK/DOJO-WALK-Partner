@@ -14,7 +14,7 @@ void main() {
   group('isSelfiePhotoImageAcceptable', () {
     img.Image solidImage(int width, int height, int brightness) {
       return img.Image(width: width, height: height)
-        ..clear(color: img.ColorRgb8(brightness, brightness, brightness));
+        ..clear(img.ColorRgb8(brightness, brightness, brightness));
     }
 
     test('rejects images smaller than 480 pixels in either dimension', () {
