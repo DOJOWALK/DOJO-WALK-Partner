@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:io';
-import 'dart:math' as math;
 
 import 'package:camera/camera.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -13,6 +12,7 @@ import 'package:image/image.dart' as img;
 
 import '../../../theme.dart';
 import 'kyc_documents_screen.dart';
+import '../utils/selfie_photo_quality.dart';
 
 class LiveSelfieScreen extends StatefulWidget {
   const LiveSelfieScreen({super.key});
@@ -534,40 +534,7 @@ class _LiveSelfieScreenState extends State<LiveSelfieScreen>
   Future<bool> _checkCapturedPhoto(File file) async {
     try {
       final bytes = await file.readAsBytes();
-      final decoded = img.decodeImage(bytes);
-
-      if (decoded == null) return false;
-
-      if (decoded.width < 480 || decoded.height < 480) {
-        return false;
-      }
-
-      // Basic brightness sampling, not full image-quality validation.
-      final sampleX = math.max(1, decoded.width ~/ 30);
-      final sampleY = math.max(1, decoded.height ~/ 30);
-
-      double totalBrightness = 0;
-      int count = 0;
-
-      for (int y = 0; y < decoded.height; y += sampleY) {
-        for (int x = 0; x < decoded.width; x += sampleX) {
-          final pixel = decoded.getPixel(x, y);
-
-          totalBrightness +=
-              (pixel.r.toDouble() +
-                  pixel.g.toDouble() +
-                  pixel.b.toDouble()) /
-              3;
-
-          count++;
-        }
-      }
-
-      if (count == 0) return false;
-
-      final brightness = totalBrightness / count;
-
-      return brightness >= 35 && brightness <= 235;
+      return isSelfiePhotoBytesAcceptable(bytes);
     } catch (e) {
       debugPrint('Selfie quality check error: $e');
       return false;
