@@ -1,0 +1,39 @@
+name: DOJO WALK Partner CI
+
+on:
+  pull_request:
+    branches:
+      - main
+      - chore/notion-aligned-structure
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  flutter-quality:
+    name: Flutter Analyze and Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Analyze Flutter code
+        run: flutter analyze
+
+      - name: Run Flutter tests
+        run: flutter test
