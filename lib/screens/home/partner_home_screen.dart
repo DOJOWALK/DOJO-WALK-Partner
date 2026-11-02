@@ -9,6 +9,7 @@ import 'review_bottom_sheet.dart';
 import 'schedule_screen.dart';
 import 'walk_details_screen.dart';
 import 'working_schedule_screen.dart';
+import '../../features/profile/utils/partner_identity.dart';
 
 class PartnerHomeScreen extends StatefulWidget {
   const PartnerHomeScreen({super.key});
@@ -26,7 +27,7 @@ class _PartnerHomeScreenState extends State<PartnerHomeScreen> {
   String? _reviewWalkId;
 
   String _fullName = 'Partner';
-  String _partnerId = 'DOJO-W-00124';
+  String _partnerId = 'Not assigned';
 
   List<Map<String, dynamic>> _todayBookings = [];
 
@@ -68,9 +69,7 @@ class _PartnerHomeScreenState extends State<PartnerHomeScreen> {
               ? fullName.trim()
               : 'Partner';
 
-          _partnerId = walkerId is String && walkerId.trim().isNotEmpty
-              ? walkerId.trim()
-              : 'DOJO-W-00124';
+          _partnerId = partnerIdLabel(walkerId);
 
           _scheduleSet = schedule is Map &&
               schedule['status'] != null &&
