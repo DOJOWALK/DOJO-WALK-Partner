@@ -370,7 +370,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                 ),
                 const SizedBox(height: 6),
-                const _VerifiedBadge(),
+                _VerifiedBadge(
+                  label: _verificationLabel,
+                  isVerified: _isVerified,
+                ),
                 const SizedBox(height: 8),
                 Text(
                   'Partner ID  •  $_walkerId',
