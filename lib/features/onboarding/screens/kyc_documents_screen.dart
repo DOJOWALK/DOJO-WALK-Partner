@@ -178,7 +178,7 @@ class _KycDocumentsScreenState extends State<KycDocumentsScreen> {
               DateTime.now().millisecondsSinceEpoch;
 
           storagePath =
-              'walker_kyc/${user.uid}/${key}_$timestamp.jpg';
+              'walker_documents/${user.uid}/${key}_$timestamp.jpg';
         }
 
         final storageRef =
