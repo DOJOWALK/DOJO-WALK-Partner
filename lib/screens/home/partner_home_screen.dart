@@ -779,7 +779,7 @@ class _PartnerHomeScreenState extends State<PartnerHomeScreen> {
                       ),
                       child: const Row(
                         children: [
-                          Icon(Icons.circle, size: 11, color: DojoPartnerTheme.textSecondary),
+                          Icon(Icons.circle, size: 11, color: Colors.green),
                           SizedBox(width: 10),
                           Expanded(
                             child: Text(
