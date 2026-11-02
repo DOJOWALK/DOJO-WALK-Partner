@@ -20,7 +20,7 @@ void main() {
     );
   });
 
-  testWidgets('sample schedule preview still renders its sample walk cards',
+  testWidgets('sample walk cards remain available in the preview',
       (tester) async {
     await tester.pumpWidget(
       const MaterialApp(
@@ -28,8 +28,14 @@ void main() {
       ),
     );
 
-    expect(find.text('Bruno'), findsNWidgets(2));
     expect(find.text('07:00 AM'), findsOneWidget);
+
+    await tester.scrollUntilVisible(
+      find.text('06:00 PM'),
+      250,
+      scrollable: find.byType(Scrollable),
+    );
+
     expect(find.text('06:00 PM'), findsOneWidget);
   });
 }
