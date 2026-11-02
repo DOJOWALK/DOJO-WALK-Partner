@@ -16,7 +16,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool _loading = true;
 
   String _fullName = 'Partner';
-  String _walkerId = 'DOJO-W-00124';
+  String _walkerId = 'Not assigned';
   String _zoneName = 'Not set';
   String _service = 'Dog Walking';
   String _rating = 'Not rated';
@@ -80,7 +80,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
           _walkerId = _readString(
             data['walkerId'],
-            fallback: 'DOJO-W-00124',
+            fallback: 'Not assigned',
           );
 
           _zoneName = _readString(
@@ -568,20 +568,20 @@ class _VerifiedBadge extends StatelessWidget {
         vertical: 5,
       ),
       decoration: BoxDecoration(
-        color: const Color(0xFFEAF8EE),
+        color: const Color(0xFFF2F2F2),
         borderRadius: BorderRadius.circular(8),
       ),
       child: const Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(
-            Icons.verified,
+            Icons.info_outline,
             size: 15,
-            color: Colors.green,
+            color: Colors.grey,
           ),
           SizedBox(width: 5),
           Text(
-            'Verified Partner',
+            'Verification status unavailable',
             style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w800,
