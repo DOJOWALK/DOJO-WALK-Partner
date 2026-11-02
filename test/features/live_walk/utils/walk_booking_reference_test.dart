@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:dojo_walk_partner/features/live_walk/utils/walk_booking_reference.dart';
+import 'package:dojo_partner/features/live_walk/utils/walk_booking_reference.dart';
 
 void main() {
   group('hasWalkBookingReference', () {
