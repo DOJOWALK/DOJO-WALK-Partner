@@ -707,14 +707,14 @@ class _PartnerHomeScreenState extends State<PartnerHomeScreen> {
                                     Icon(
                                       Icons.verified_rounded,
                                       size: 16,
-                                      color: Colors.green,
+                                      color: DojoPartnerTheme.textSecondary,
                                     ),
                                     SizedBox(width: 5),
                                     Text(
-                                      'Verified Partner',
+                                      'Verification status unavailable',
                                       style: TextStyle(
                                         fontSize: 13,
-                                        color: Colors.green,
+                                        color: DojoPartnerTheme.textSecondary,
                                         fontWeight: FontWeight.w600,
                                       ),
                                     ),
@@ -779,7 +779,7 @@ class _PartnerHomeScreenState extends State<PartnerHomeScreen> {
                       ),
                       child: const Row(
                         children: [
-                          Icon(Icons.circle, size: 11, color: Colors.green),
+                          Icon(Icons.circle, size: 11, color: DojoPartnerTheme.textSecondary),
                           SizedBox(width: 10),
                           Expanded(
                             child: Text(
