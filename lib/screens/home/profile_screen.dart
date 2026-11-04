@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../../theme.dart';
+import '../../features/profile/profile_verification_status.dart';
 import '../auth/mobile_login_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -16,9 +17,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool _loading = true;
 
   String _fullName = 'Partner';
-  String _walkerId = 'DOJO-W-00124';
+  String _walkerId = 'Not assigned';
   String _zoneName = 'Not set';
-  String _service = 'Dog Walking';
+  String _service = 'Not available';
+  String _verificationLabel = 'Verification status unavailable';
+  bool _isVerified = false;
   String _rating = 'Not rated';
   String _phone = '';
 
@@ -51,8 +54,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (data != null) {
         final services = data['services'];
         final rating = data['rating'];
+        final verificationLabel = partnerProfileVerificationLabel(
+          status: data['status'],
+          isApproved: data['isApproved'],
+          isActive: data['isActive'],
+        );
 
-        String serviceName = 'Dog Walking';
+        String serviceName = 'Not available';
 
         if (services is List && services.isNotEmpty) {
           final firstService = services.first.toString();
@@ -80,7 +88,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
           _walkerId = _readString(
             data['walkerId'],
-            fallback: 'DOJO-W-00124',
+            fallback: 'Not assigned',
           );
 
           _zoneName = _readString(
@@ -90,6 +98,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
           _service = serviceName;
           _rating = ratingText;
+          _verificationLabel = verificationLabel;
+          _isVerified = verificationLabel == 'Verified Partner';
 
           _phone = _readString(
             data['phone'],
@@ -104,6 +114,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
         setState(() {
           _fullName = user.displayName ?? 'Partner';
           _phone = user.phoneNumber ?? '';
+          _walkerId = 'Not assigned';
+          _verificationLabel = 'Verification status unavailable';
+          _isVerified = false;
           _loading = false;
         });
       }
@@ -111,6 +124,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (!mounted) return;
 
       setState(() {
+        _verificationLabel = 'Verification status unavailable';
+        _isVerified = false;
         _loading = false;
       });
     }
@@ -169,7 +184,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   color: DojoPartnerTheme.primaryOrange,
                 ),
               )
-            : ListView(
+            : RefreshIndicator(
+                onRefresh: _loadProfile,
+                color: DojoPartnerTheme.primaryOrange,
+                child: ListView(
                 padding: const EdgeInsets.fromLTRB(
                   20,
                   8,
@@ -308,6 +326,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                 ],
               ),
+            ),
       ),
     );
   }
@@ -351,7 +370,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                 ),
                 const SizedBox(height: 6),
-                const _VerifiedBadge(),
+                _VerifiedBadge(
+                  label: _verificationLabel,
+                  isVerified: _isVerified,
+                ),
                 const SizedBox(height: 8),
                 Text(
                   'Partner ID  •  $_walkerId',
@@ -558,34 +580,45 @@ class _SectionTitle extends StatelessWidget {
 }
 
 class _VerifiedBadge extends StatelessWidget {
-  const _VerifiedBadge();
+  const _VerifiedBadge({
+    required this.label,
+    required this.isVerified,
+  });
+
+  final String label;
+  final bool isVerified;
 
   @override
   Widget build(BuildContext context) {
+    final color = isVerified ? Colors.green : DojoPartnerTheme.textSecondary;
+    final background = isVerified
+        ? const Color(0xFFEAF8EE)
+        : const Color(0xFFF1F1F1);
+
     return Container(
       padding: const EdgeInsets.symmetric(
         horizontal: 9,
         vertical: 5,
       ),
       decoration: BoxDecoration(
-        color: const Color(0xFFEAF8EE),
+        color: background,
         borderRadius: BorderRadius.circular(8),
       ),
-      child: const Row(
+      child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(
-            Icons.verified,
+            isVerified ? Icons.verified : Icons.info_outline,
             size: 15,
-            color: Colors.green,
+            color: color,
           ),
-          SizedBox(width: 5),
+          const SizedBox(width: 5),
           Text(
-            'Verified Partner',
+            label,
             style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w800,
-              color: Colors.green,
+              color: color,
             ),
           ),
         ],
