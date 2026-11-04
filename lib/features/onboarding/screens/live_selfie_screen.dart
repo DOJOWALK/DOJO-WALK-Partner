@@ -647,9 +647,9 @@ class _LiveSelfieScreenState extends State<LiveSelfieScreen>
     setState(() => _uploading = true);
 
     try {
-      final timestamp =
-          DateTime.now().millisecondsSinceEpoch;
-
+      // Use a fresh path for every confirmation attempt so a retry
+      // never collides with an object blocked by no-overwrite Storage Rules.
+      final timestamp = DateTime.now().microsecondsSinceEpoch;
       final storagePath =
           'walker_selfies/${user.uid}/selfie_$timestamp.jpg';
 
