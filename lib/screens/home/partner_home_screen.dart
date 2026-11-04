@@ -10,6 +10,7 @@ import 'schedule_screen.dart';
 import 'walk_details_screen.dart';
 import 'working_schedule_screen.dart';
 import '../../features/profile/utils/partner_identity.dart';
+import '../../features/profile/profile_verification_status.dart';
 
 class PartnerHomeScreen extends StatefulWidget {
   const PartnerHomeScreen({super.key});
@@ -28,6 +29,7 @@ class _PartnerHomeScreenState extends State<PartnerHomeScreen> {
 
   String _fullName = 'Partner';
   String _partnerId = 'Not assigned';
+  String _verificationLabel = 'Verification status unavailable';
 
   List<Map<String, dynamic>> _todayBookings = [];
 
@@ -63,6 +65,11 @@ class _PartnerHomeScreenState extends State<PartnerHomeScreen> {
         final schedule = data['workingSchedule'];
         final fullName = data['fullName'];
         final walkerId = data['walkerId'];
+        final verificationLabel = partnerProfileVerificationLabel(
+          status: data['status'],
+          isApproved: data['isApproved'],
+          isActive: data['isActive'],
+        );
 
         setState(() {
           _fullName = fullName is String && fullName.trim().isNotEmpty
@@ -70,6 +77,7 @@ class _PartnerHomeScreenState extends State<PartnerHomeScreen> {
               : 'Partner';
 
           _partnerId = partnerIdLabel(walkerId);
+          _verificationLabel = verificationLabel;
 
           _scheduleSet = schedule is Map &&
               schedule['status'] != null &&
@@ -702,19 +710,25 @@ class _PartnerHomeScreenState extends State<PartnerHomeScreen> {
                                   ),
                                 ),
                                 const SizedBox(height: 4),
-                                const Row(
+                                Row(
                                   children: [
                                     Icon(
-                                      Icons.verified_rounded,
+                                      _verificationLabel == 'Verified Partner'
+                                          ? Icons.verified_rounded
+                                          : Icons.info_outline_rounded,
                                       size: 16,
-                                      color: DojoPartnerTheme.textSecondary,
+                                      color: _verificationLabel == 'Verified Partner'
+                                          ? Colors.green
+                                          : DojoPartnerTheme.textSecondary,
                                     ),
-                                    SizedBox(width: 5),
+                                    const SizedBox(width: 5),
                                     Text(
-                                      'Verification status unavailable',
+                                      _verificationLabel,
                                       style: TextStyle(
                                         fontSize: 13,
-                                        color: DojoPartnerTheme.textSecondary,
+                                        color: _verificationLabel == 'Verified Partner'
+                                            ? Colors.green
+                                            : DojoPartnerTheme.textSecondary,
                                         fontWeight: FontWeight.w600,
                                       ),
                                     ),
