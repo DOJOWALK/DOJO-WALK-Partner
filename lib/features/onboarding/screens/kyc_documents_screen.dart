@@ -32,8 +32,6 @@ class _KycDocumentsScreenState extends State<KycDocumentsScreen> {
     'pan_card': 'PAN Card',
   };
 
-  final Map<String, String> _storagePaths = {};
-
   String? _activeKey;
 
   bool _isUploading = false;
@@ -169,17 +167,11 @@ class _KycDocumentsScreenState extends State<KycDocumentsScreen> {
           _uploadProgress = i / documentKeys.length;
         });
 
-        // Reuse an existing Storage path only when this screen
-        // already uploaded that document during this session.
-        String storagePath = _storagePaths[key] ?? '';
-
-        if (storagePath.isEmpty) {
-          final timestamp =
-              DateTime.now().millisecondsSinceEpoch;
-
-          storagePath =
-              'walker_documents/${user.uid}/${key}_$timestamp.jpg';
-        }
+        // Every upload attempt gets a fresh path. Storage Rules
+        // intentionally prevent overwriting previously uploaded KYC files.
+        final timestamp = DateTime.now().microsecondsSinceEpoch;
+        final storagePath =
+            'walker_documents/${user.uid}/${key}_$timestamp.jpg';
 
         final storageRef =
             FirebaseStorage.instance.ref().child(storagePath);
@@ -194,8 +186,6 @@ class _KycDocumentsScreenState extends State<KycDocumentsScreen> {
             },
           ),
         );
-
-        _storagePaths[key] = storagePath;
 
         documentRecords[key] = {
           'status': 'pending',
