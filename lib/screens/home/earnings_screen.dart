@@ -60,7 +60,7 @@ class EarningsScreen extends StatelessWidget {
                   ),
                   SizedBox(height: 8),
                   Text(
-                    '₹1,240',
+                    '—',
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 34,
@@ -69,7 +69,7 @@ class EarningsScreen extends StatelessWidget {
                   ),
                   SizedBox(height: 6),
                   Text(
-                    'Ready for payout',
+                    'Ledger connection pending',
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 13,
@@ -86,7 +86,7 @@ class EarningsScreen extends StatelessWidget {
                 Expanded(
                   child: _EarningCard(
                     title: 'Today',
-                    amount: '₹120',
+                    amount: '—',
                     icon: Icons.today_outlined,
                   ),
                 ),
@@ -94,7 +94,7 @@ class EarningsScreen extends StatelessWidget {
                 Expanded(
                   child: _EarningCard(
                     title: 'This Week',
-                    amount: '₹720',
+                    amount: '—',
                     icon: Icons.date_range_outlined,
                   ),
                 ),
@@ -108,7 +108,7 @@ class EarningsScreen extends StatelessWidget {
                 Expanded(
                   child: _EarningCard(
                     title: 'This Month',
-                    amount: '₹1,240',
+                    amount: '—',
                     icon: Icons.calendar_month_outlined,
                   ),
                 ),
@@ -116,7 +116,7 @@ class EarningsScreen extends StatelessWidget {
                 Expanded(
                   child: _EarningCard(
                     title: 'Walks',
-                    amount: '12',
+                    amount: '—',
                     icon: Icons.pets_outlined,
                   ),
                 ),
@@ -137,29 +137,31 @@ class EarningsScreen extends StatelessWidget {
 
             const SizedBox(height: 12),
 
-            _TransactionCard(
-              dogName: 'Bruno',
-              type: 'Regular Walk',
-              date: 'Today • 07:00 AM',
-              amount: '₹120',
-            ),
-
-            const SizedBox(height: 10),
-
-            _TransactionCard(
-              dogName: 'Bruno',
-              type: 'Regular Walk',
-              date: 'Yesterday • 06:00 PM',
-              amount: '₹120',
-            ),
-
-            const SizedBox(height: 10),
-
-            _TransactionCard(
-              dogName: 'Max',
-              type: 'One-Time Walk',
-              date: 'Yesterday • 10:30 AM',
-              amount: '₹150',
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFF7F0),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: const Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(
+                    Icons.info_outline,
+                    color: DojoPartnerTheme.primaryOrange,
+                  ),
+                  SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'Earnings preview only — these figures are not live or payable. Verified earnings will appear after the approved earnings ledger is connected.',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: DojoPartnerTheme.textSecondary,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
 
             const SizedBox(height: 24),
@@ -179,7 +181,7 @@ class EarningsScreen extends StatelessWidget {
                   SizedBox(width: 12),
                   Expanded(
                     child: Text(
-                      'Earnings are added after a walk is successfully completed.',
+                      'No verified earnings are available yet. This screen will update when the approved earnings ledger is connected.',
                       style: TextStyle(
                         fontSize: 12,
                         color: DojoPartnerTheme.textSecondary,
@@ -240,81 +242,6 @@ class _EarningCard extends StatelessWidget {
             style: const TextStyle(
               fontSize: 12,
               color: DojoPartnerTheme.textSecondary,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _TransactionCard extends StatelessWidget {
-  const _TransactionCard({
-    required this.dogName,
-    required this.type,
-    required this.date,
-    required this.amount,
-  });
-
-  final String dogName;
-  final String type;
-  final String date;
-  final String amount;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: const Color(0xFFEAEAEA),
-        ),
-      ),
-      child: Row(
-        children: [
-          const CircleAvatar(
-            radius: 23,
-            child: Icon(Icons.pets),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  dogName,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  type,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: DojoPartnerTheme.textSecondary,
-                  ),
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  date,
-                  style: const TextStyle(
-                    fontSize: 11,
-                    color: DojoPartnerTheme.textSecondary,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Text(
-            '+$amount',
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w900,
-              color: Colors.green,
             ),
           ),
         ],
