@@ -1,7 +1,5 @@
 import 'dart:async';
 import 'dart:io';
-import 'dart:math' as math;
-
 import 'package:camera/camera.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -9,10 +7,14 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
-import 'package:image/image.dart' as img;
-
 import '../../../theme.dart';
+import '../utils/selfie_photo_quality.dart';
 import 'kyc_documents_screen.dart';
+
+/// Keeps the camera preview useful on compact screens without letting it
+/// dominate the available vertical space.
+double liveSelfiePreviewHeight(double availableHeight) =>
+    (availableHeight * 0.42).clamp(220.0, 370.0).toDouble();
 
 class LiveSelfieScreen extends StatefulWidget {
   const LiveSelfieScreen({super.key});
@@ -534,40 +536,7 @@ class _LiveSelfieScreenState extends State<LiveSelfieScreen>
   Future<bool> _checkCapturedPhoto(File file) async {
     try {
       final bytes = await file.readAsBytes();
-      final decoded = img.decodeImage(bytes);
-
-      if (decoded == null) return false;
-
-      if (decoded.width < 480 || decoded.height < 480) {
-        return false;
-      }
-
-      // Basic brightness sampling, not full image-quality validation.
-      final sampleX = math.max(1, decoded.width ~/ 30);
-      final sampleY = math.max(1, decoded.height ~/ 30);
-
-      double totalBrightness = 0;
-      int count = 0;
-
-      for (int y = 0; y < decoded.height; y += sampleY) {
-        for (int x = 0; x < decoded.width; x += sampleX) {
-          final pixel = decoded.getPixel(x, y);
-
-          totalBrightness +=
-              (pixel.r.toDouble() +
-                  pixel.g.toDouble() +
-                  pixel.b.toDouble()) /
-              3;
-
-          count++;
-        }
-      }
-
-      if (count == 0) return false;
-
-      final brightness = totalBrightness / count;
-
-      return brightness >= 35 && brightness <= 235;
+      return isSelfiePhotoBytesAcceptable(bytes);
     } catch (e) {
       debugPrint('Selfie quality check error: $e');
       return false;
@@ -776,6 +745,9 @@ class _LiveSelfieScreenState extends State<LiveSelfieScreen>
   @override
   Widget build(BuildContext context) {
     final previewFile = _selfieFile;
+    final previewHeight = liveSelfiePreviewHeight(
+      MediaQuery.sizeOf(context).height,
+    );
 
     return Scaffold(
       backgroundColor: const Color(0xFFFAFAFA),
@@ -835,7 +807,7 @@ class _LiveSelfieScreenState extends State<LiveSelfieScreen>
                       ),
                       const SizedBox(height: 20),
                       Container(
-                        height: 370,
+                        height: previewHeight,
                         clipBehavior: Clip.antiAlias,
                         decoration: BoxDecoration(
                           color: Colors.black,
@@ -858,7 +830,7 @@ class _LiveSelfieScreenState extends State<LiveSelfieScreen>
                                   ),
                                 ),
                               )
-                            : _buildCameraPreview(),
+                            : _buildCameraPreview(previewHeight),
                       ),
                       const SizedBox(height: 16),
                       Container(
@@ -1000,7 +972,7 @@ class _LiveSelfieScreenState extends State<LiveSelfieScreen>
     );
   }
 
-  Widget _buildCameraPreview() {
+  Widget _buildCameraPreview(double previewHeight) {
     final camera = _camera;
 
     if (_initializing ||
@@ -1022,7 +994,7 @@ class _LiveSelfieScreenState extends State<LiveSelfieScreen>
           child: Center(
             child: Container(
               width: 240,
-              height: 300,
+              height: previewHeight * 0.82,
               decoration: BoxDecoration(
                 border: Border.all(
                   color: Colors.white,
