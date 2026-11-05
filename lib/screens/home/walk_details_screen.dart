@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../../theme.dart';
 import 'navigation_screen.dart';
+import '../../features/live_walk/utils/walk_booking_reference.dart';
 
 class WalkDetailsScreen extends StatefulWidget {
   const WalkDetailsScreen({
@@ -153,20 +154,35 @@ class _WalkDetailsScreenState
   Future<void> _navigateToPickup() async {
     final bookingId = widget.bookingId;
 
-    if (bookingId != null &&
-        bookingId.isNotEmpty) {
-      try {
-        await FirebaseFirestore.instance
-            .collection('bookings')
-            .doc(bookingId)
-            .update({
-          'status': 'accepted',
-          'updatedAt':
-              FieldValue.serverTimestamp(),
-        });
-      } catch (_) {
-        // Navigation should still work.
-      }
+    if (!hasWalkBookingReference(bookingId)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Walk reference unavailable. Please contact DOJO Support.',
+          ),
+        ),
+      );
+      return;
+    }
+
+    try {
+      await FirebaseFirestore.instance
+          .collection('bookings')
+          .doc(bookingId!.trim())
+          .update({
+        'status': 'accepted',
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Booking update failed. Please try again.',
+          ),
+        ),
+      );
+      return;
     }
 
     if (!mounted) return;

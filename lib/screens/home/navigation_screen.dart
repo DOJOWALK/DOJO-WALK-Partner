@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../../theme.dart';
 import '../../features/live_walk/screens/live_walk_screen.dart';
+import '../../features/live_walk/utils/walk_booking_reference.dart';
 
 class NavigationScreen extends StatefulWidget {
   const NavigationScreen({
@@ -32,14 +33,23 @@ class _NavigationScreenState extends State<NavigationScreen> {
   Future<bool> _updateBookingStatus(String status) async {
     final bookingId = widget.bookingId;
 
-    if (bookingId == null || bookingId.isEmpty) {
-      return true;
+    if (!hasWalkBookingReference(bookingId)) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Walk reference unavailable. Please contact DOJO Support.',
+            ),
+          ),
+        );
+      }
+      return false;
     }
 
     try {
       await FirebaseFirestore.instance
           .collection('bookings')
-          .doc(bookingId)
+          .doc(bookingId!.trim())
           .update({
         'status': status,
         'updatedAt': FieldValue.serverTimestamp(),
