@@ -60,6 +60,45 @@ class ScheduleScreen extends StatelessWidget {
               ),
             ),
 
+            const SizedBox(height: 14),
+
+            Container(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 10,
+              ),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFF4EC),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                  color: DojoPartnerTheme.primaryOrange.withValues(
+                    alpha: 0.25,
+                  ),
+                ),
+              ),
+              child: const Row(
+                children: [
+                  Icon(
+                    Icons.info_outline_rounded,
+                    size: 18,
+                    color: DojoPartnerTheme.primaryOrange,
+                  ),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Sample schedule — these are preview walks, not live assignments.',
+                      style: TextStyle(
+                        fontSize: 12,
+                        height: 1.35,
+                        fontWeight: FontWeight.w700,
+                        color: DojoPartnerTheme.textPrimary,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
             const SizedBox(height: 22),
 
             Container(
