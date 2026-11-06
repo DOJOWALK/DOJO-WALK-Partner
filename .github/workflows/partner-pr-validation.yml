@@ -2,7 +2,7 @@ name: Partner Flutter PR Validation
 
 on:
   pull_request:
-    branches: [main]
+    branches: [main, working]
     paths:
       - 'AGENTS.md'
       - '**.dart'
