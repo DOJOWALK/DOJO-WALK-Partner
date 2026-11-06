@@ -11,6 +11,7 @@ import '../../../theme.dart';
 import '../../../screens/home/customer_otp_sheet.dart';
 import '../../../screens/home/walk_summary_screen.dart';
 
+import '../models/pickup_coordinates.dart';
 import '../services/location_permission_service.dart';
 
 class LiveWalkScreen extends StatefulWidget {
@@ -406,6 +407,18 @@ class _LiveWalkScreenState extends State<LiveWalkScreen> {
 
       if (data == null) return;
 
+      // Canonical Customer booking snapshot contract.
+      final pickupAddress = data['pickupAddress'];
+      if (pickupAddress is Map) {
+        final pickupCoordinates = readPickupCoordinates(pickupAddress);
+        if (pickupCoordinates != null) {
+          _customerLatitude = pickupCoordinates.latitude;
+          _customerLongitude = pickupCoordinates.longitude;
+          return;
+        }
+      }
+
+      // Backward compatibility for bookings created before pickupAddress.
       final latitude = _readDouble(data['latitude']);
       final longitude = _readDouble(data['longitude']);
 
