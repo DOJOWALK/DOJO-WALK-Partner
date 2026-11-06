@@ -1,6 +1,18 @@
 name: Partner Flutter PR Validation
 
 on:
+  push:
+    branches: [working]
+    paths:
+      - 'AGENTS.md'
+      - '**.dart'
+      - 'pubspec.yaml'
+      - 'pubspec.lock'
+      - 'analysis_options.yaml'
+      - 'assets/**'
+      - 'android/**'
+      - 'test/**'
+      - '.github/workflows/**'
   pull_request:
     branches: [main, working]
     paths:
